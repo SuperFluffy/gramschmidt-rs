@@ -6,9 +6,10 @@ use ndarray::{Array1,Array2,Data,DataMut,Ix1,Ix2,LinalgScalar};
 use ndarray::prelude::*;
 
 pub trait GramSchmidt: Sized + Clone + Default {
-    fn compute_into<S1,S2>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S2, Ix1>)
+    fn compute_into<S1,S2,S3>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S3, Ix1>)
         where S1: Data<Elem = Self>,
-              S2: DataMut<Elem = Self>;
+              S2: DataMut<Elem = Self>,
+              S3: DataMut<Elem = Self>;
 
     fn compute<S>(a: &ArrayBase<S, Ix2>) -> (Array<Self, Ix2>, Array<Self, Ix1>)
         where S: Data<Elem = Self>
@@ -22,9 +23,10 @@ pub trait GramSchmidt: Sized + Clone + Default {
 }
 
 pub trait ModifiedGramSchmidt: Sized + Clone + Default {
-    fn compute_into<S1,S2>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S2, Ix1>)
+    fn compute_into<S1,S2,S3>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S3, Ix1>)
         where S1: Data<Elem = Self>,
-              S2: DataMut<Elem = Self>;
+              S2: DataMut<Elem = Self>,
+              S3: DataMut<Elem = Self>;
 
     fn compute<S>(a: &ArrayBase<S, Ix2>) -> (Array<Self, Ix2>, Array<Self, Ix1>)
         where S: Data<Elem = Self>
@@ -38,9 +40,10 @@ pub trait ModifiedGramSchmidt: Sized + Clone + Default {
 }
 
 impl GramSchmidt for f64 {
-    fn compute_into<S1,S2>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S2, Ix1>)
+    fn compute_into<S1,S2,S3>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S3, Ix1>)
         where S1: Data<Elem = Self>,
-              S2: DataMut<Elem = Self>
+              S2: DataMut<Elem = Self>,
+              S3: DataMut<Elem = Self>
     {
         let n_rows = orth.shape()[0];
 
@@ -64,9 +67,10 @@ impl GramSchmidt for f64 {
 }
 
 impl ModifiedGramSchmidt for f64 {
-    fn compute_into<S1,S2>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S2, Ix1>)
+    fn compute_into<S1,S2,S3>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S3, Ix1>)
         where S1: Data<Elem = Self>,
-              S2: DataMut<Elem = Self>
+              S2: DataMut<Elem = Self>,
+              S3: DataMut<Elem = Self>
     {
         let n_rows = orth.shape()[0];
 
