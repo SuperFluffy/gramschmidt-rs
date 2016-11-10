@@ -1,0 +1,8 @@
+[package]
+name = "gram-schmidt"
+version = "0.1.0"
+authors = ["Richard Janis Goldschmidt <janis.beckert@gmail.com>"]
+
+[dependencies]
+blas = "0.15"
+ndarray = "0.6"
