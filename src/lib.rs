@@ -88,18 +88,18 @@ impl ModifiedGramSchmidt for f64 {
     }
 }
 
-fn orthogonal<S>(a: &ArrayBase<S,Ix2>) -> bool
+pub fn orthogonal<S>(a: &ArrayBase<S,Ix2>) -> bool
     where S: Data<Elem=f64>
 {
     let b = a.dot(&a.t());
     b.all_close(&Array2::eye(b.shape()[0]), 1e-14)
 }
 
-fn normalization(v: &[f64]) -> f64 {
+pub fn normalization(v: &[f64]) -> f64 {
     blas::c::dnrm2(v.len() as i32, v, 1)
 }
 
-fn project<A,S1,S2>(vector: &ArrayBase<S1,Ix1>, onto: &ArrayBase<S2,Ix1>) -> A
+pub fn project<A,S1,S2>(vector: &ArrayBase<S1,Ix1>, onto: &ArrayBase<S2,Ix1>) -> A
     where S1: Data<Elem=A>,
           S2: Data<Elem=A>,
           A: LinalgScalar
