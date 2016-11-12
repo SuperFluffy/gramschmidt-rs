@@ -23,10 +23,21 @@ pub trait GramSchmidt: Sized + Clone + Default {
 }
 
 pub trait ModifiedGramSchmidt: Sized + Clone + Default {
+    fn compute_inplace<S1,S2>(orth: &mut ArrayBase<S1, Ix2>, norm: &mut ArrayBase<S2, Ix1>)
+        where S1: DataMut<Elem = Self>,
+              S2: DataMut<Elem = Self>;
+
+    fn compute_inplace_no_norm<S1>(a: &mut ArrayBase<S1, Ix2>)
+        where S1: DataMut<Elem = Self>;
+
     fn compute_into<S1,S2,S3>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S3, Ix1>)
         where S1: Data<Elem = Self>,
               S2: DataMut<Elem = Self>,
-              S3: DataMut<Elem = Self>;
+              S3: DataMut<Elem = Self>,
+    {
+        orth.assign(&a);
+        Self::compute_inplace(orth, norm);
+    }
 
     fn compute<S>(a: &ArrayBase<S, Ix2>) -> (Array<Self, Ix2>, Array<Self, Ix1>)
         where S: Data<Elem = Self>
@@ -56,8 +67,8 @@ impl GramSchmidt for f64 {
             let mut v = todo.row_mut(0);
 
             for w in done.inner_iter() {
-                let projection = project(&ref_vec, &w);
-                v.zip_mut_with(&w, |ev,ew| { *ev -= projection * ew; });
+                let projection_factor = project(&ref_vec, &w);
+                v.zip_mut_with(&w, |ev,ew| { *ev -= projection_factor * ew; });
             }
 
             norm[i] = normalization(v.as_slice().unwrap());
@@ -67,14 +78,11 @@ impl GramSchmidt for f64 {
 }
 
 impl ModifiedGramSchmidt for f64 {
-    fn compute_into<S1,S2,S3>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S3, Ix1>)
-        where S1: Data<Elem = Self>,
+    fn compute_inplace<S1,S2>(orth: &mut ArrayBase<S1, Ix2>, norm: &mut ArrayBase<S2, Ix1>)
+        where S1: DataMut<Elem = Self>,
               S2: DataMut<Elem = Self>,
-              S3: DataMut<Elem = Self>
     {
         let n_rows = orth.shape()[0];
-
-        orth.assign(&a);
 
         for i in 0..n_rows {
             let (done, mut todo) = orth.view_mut().split_at(Axis(0), i);
@@ -82,12 +90,34 @@ impl ModifiedGramSchmidt for f64 {
             let mut v = todo.row_mut(0);
 
             for w in done.inner_iter() {
-                let projection = project(&v, &w);
-                v.zip_mut_with(&w, |ev,ew| { *ev -= projection * ew; });
+                // w is already normalized
+                // let projection_factor = project(&v, &w);
+                let projection_factor = v.dot(&w);
+                v.zip_mut_with(&w, |ev,ew| { *ev -= projection_factor * ew; });
             }
 
             norm[i] = normalization(v.as_slice().unwrap());
             v /= norm[i];
+        }
+    }
+
+    fn compute_inplace_no_norm<S1>(orth: &mut ArrayBase<S1, Ix2>)
+        where S1: DataMut<Elem = Self>,
+    {
+        let n_rows = orth.shape()[0];
+
+        for i in 0..n_rows {
+            let (done, mut todo) = orth.view_mut().split_at(Axis(0), i);
+
+            let mut v = todo.row_mut(0);
+
+            for w in done.inner_iter() {
+                // let projection_factor = project(&v, &w);
+                let projection_factor = v.dot(&w);
+                v.zip_mut_with(&w, |ev,ew| { *ev -= projection_factor * ew; });
+            }
+
+            v /= normalization(v.as_slice().unwrap());
         }
     }
 }
