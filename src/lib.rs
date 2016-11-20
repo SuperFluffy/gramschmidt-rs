@@ -122,11 +122,11 @@ impl ModifiedGramSchmidt for f64 {
     }
 }
 
-pub fn orthogonal<S>(a: &ArrayBase<S,Ix2>) -> bool
+pub fn orthogonal<S>(a: &ArrayBase<S,Ix2>, tol: f64) -> bool
     where S: Data<Elem=f64>
 {
     let b = a.dot(&a.t());
-    b.all_close(&Array2::eye(b.shape()[0]), 1e-14)
+    b.all_close(&Array2::eye(b.shape()[0]), tol)
 }
 
 pub fn normalization(v: &[f64]) -> f64 {
@@ -187,10 +187,10 @@ mod tests {
         println!("{:?}", b_orth);
         println!("{:?}", b_norm);
 
-        assert!(super::orthogonal(&a_orth));
+        assert!(super::orthogonal(&a_orth, 1e-14));
         assert!(a_norm.all_close(&Array1::from_elem(4, 1.0), 1e-16));
 
-        assert!(super::orthogonal(&b_orth));
+        assert!(super::orthogonal(&b_orth, 1e-14));
         assert!(b_norm.all_close(&arr1(&[2.0615528128088303, 0.2910427500435996, 0.7, 3.0]), 1e-16));
     }
 
@@ -210,10 +210,10 @@ mod tests {
 
         let (b_orth, b_norm) = ModifiedGramSchmidt::compute(&b);
 
-        assert!(super::orthogonal(&a_orth));
+        assert!(super::orthogonal(&a_orth,1e-14));
         assert!(a_norm.all_close(&Array1::from_elem(4, 1.0), 1e-16));
 
-        assert!(super::orthogonal(&b_orth));
+        assert!(super::orthogonal(&b_orth,1e-14));
         assert!(b_norm.all_close(&arr1(&[2.0615528128088303, 0.2910427500435996, 0.7, 3.0]), 1e-16));
     }
 
@@ -249,12 +249,12 @@ mod tests {
         ModifiedGramSchmidt::compute_into(&b, &mut b_o, &mut b_n);
         ModifiedGramSchmidt::compute_into(&c, &mut c_o, &mut c_n);
 
-        assert!(super::orthogonal(&a_o));
+        assert!(super::orthogonal(&a_o,1e-14));
         assert!(a_n.all_close(&Array1::from_elem(4, 1.0), 1e-16));
 
-        assert!(super::orthogonal(&b_o));
+        assert!(super::orthogonal(&b_o,1e-14));
         assert!(b_n.all_close(&arr1(&[2.0615528128088303, 0.2910427500435996, 0.7, 3.0]), 1e-16));
 
-        assert!(super::orthogonal(&c_o));
+        assert!(super::orthogonal(&c_o,1e-14));
     }
 }
