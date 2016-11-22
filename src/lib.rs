@@ -2,7 +2,7 @@ extern crate blas;
 #[macro_use(s)]
 extern crate ndarray;
 
-use ndarray::{Array1,Array2,Data,DataMut,Ix1,Ix2,LinalgScalar};
+use ndarray::{Data,DataMut,LinalgScalar};
 use ndarray::prelude::*;
 
 pub trait GramSchmidt: Sized + Clone + Default {
