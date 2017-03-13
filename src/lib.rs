@@ -1,5 +1,4 @@
 extern crate blas;
-#[macro_use(s)]
 extern crate ndarray;
 
 use ndarray::{Data,DataMut,LinalgScalar};
@@ -84,20 +83,30 @@ impl ModifiedGramSchmidt for f64 {
     {
         let n_rows = orth.shape()[0];
 
+        let mut todo = orth.view_mut();
+
         for i in 0..n_rows {
-            let (done, mut todo) = orth.view_mut().split_at(Axis(0), i);
+            let (mut v, rest) = todo.split_at(Axis(0), 1);
+            let mut v = v.row_mut(0);
+            todo = rest;
 
-            let mut v = todo.row_mut(0);
+            // Normalize the current row and remove its projection from the remaining rows. This
+            // partially orthogonalizes the outstanding rows with respect to each current row.
+            //
+            // Another strategy would have been to use the already orthogonalized rows to
+            // orthogonalize the current row in one go and then normalize it.
+            //
+            // However, the current strategy should be better for cache locality as we will not
+            // need to reload the finished rows into cache all the time.
+            norm[i] = normalization(v.as_slice().unwrap());
+            v /= norm[i];
 
-            for w in done.inner_iter() {
+            for mut w in todo.inner_iter_mut() {
                 // w is already normalized
                 // let projection_factor = project(&v, &w);
                 let projection_factor = v.dot(&w);
-                v.zip_mut_with(&w, |ev,ew| { *ev -= projection_factor * ew; });
+                w.zip_mut_with(&v, |ew,ev| { *ew -= projection_factor * ev; });
             }
-
-            norm[i] = normalization(v.as_slice().unwrap());
-            v /= norm[i];
         }
     }
 
@@ -106,18 +115,22 @@ impl ModifiedGramSchmidt for f64 {
     {
         let n_rows = orth.shape()[0];
 
-        for i in 0..n_rows {
-            let (done, mut todo) = orth.view_mut().split_at(Axis(0), i);
+        let mut todo = orth.view_mut();
 
-            let mut v = todo.row_mut(0);
+        for _i in 0..n_rows {
+            let (mut v, rest) = todo.split_at(Axis(0), 1);
+            let mut v = v.row_mut(0);
+            todo = rest;
 
-            for w in done.inner_iter() {
+            // Same normalization strategy as with compute_inplace; see there for more comments.
+            v /= normalization(v.as_slice().unwrap());
+
+            for mut w in todo.inner_iter_mut() {
+                // w is already normalized
                 // let projection_factor = project(&v, &w);
                 let projection_factor = v.dot(&w);
-                v.zip_mut_with(&w, |ev,ew| { *ev -= projection_factor * ew; });
+                w.zip_mut_with(&v, |ew,ev| { *ew -= projection_factor * ev; });
             }
-
-            v /= normalization(v.as_slice().unwrap());
         }
     }
 }
