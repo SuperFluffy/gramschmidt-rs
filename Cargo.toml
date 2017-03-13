@@ -6,3 +6,7 @@ authors = ["Richard Janis Goldschmidt <janis.beckert@gmail.com>"]
 [dependencies]
 blas = "0.15"
 ndarray = ">= 0.7, <= 0.8"
+
+[dev-dependencies]
+ndarray-rand = "0.4"
+rand = "0.3"
