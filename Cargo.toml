@@ -5,4 +5,4 @@ authors = ["Richard Janis Goldschmidt <janis.beckert@gmail.com>"]
 
 [dependencies]
 blas = "0.15"
-ndarray = "0.7"
+ndarray = ">= 0.7, <= 0.8"
