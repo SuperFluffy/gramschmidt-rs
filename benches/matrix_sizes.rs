@@ -5,6 +5,7 @@
 extern crate gram_schmidt;
 extern crate ndarray;
 extern crate ndarray_rand;
+extern crate num_cpus;
 extern crate rand;
 extern crate rayon;
 extern crate test; // Built-in crate for benchmarking.
@@ -14,6 +15,7 @@ use gram_schmidt::parallel::ParallelModifiedGramSchmidt;
 use ndarray::prelude::*;
 use ndarray_rand::RandomExt;
 use rand::distributions::Normal;
+use std::cmp;
 
 fn compute_inplace_first(orth: &mut Array2<f64>, norm: &mut Array1<f64>)
 {
@@ -100,7 +102,9 @@ macro_rules! bench_sizes {
 
     #[bench]
     fn $name_parallel(bench: &mut test::Bencher) {
-        rayon::initialize(rayon::Configuration::new().set_num_threads(2));
+        let n_cpus = cmp::max(1, num_cpus::get() / 2);
+        let rayon_cfg = rayon::Configuration::new().set_num_threads(n_cpus);
+        let _ = rayon::initialize(rayon_cfg);
 
         let n = $n;
 
@@ -116,11 +120,12 @@ macro_rules! bench_sizes {
     }
 }}
 
+bench_sizes!( 256, sequential_project_first__256, sequential_project_late__256, parallel__256);
 bench_sizes!( 512, sequential_project_first__512, sequential_project_late__512, parallel__512);
 bench_sizes!( 768, sequential_project_first__768, sequential_project_late__768, parallel__768);
 bench_sizes!(1024, sequential_project_first_1024, sequential_project_late_1024, parallel_1024);
 bench_sizes!(1536, sequential_project_first_1536, sequential_project_late_1536, parallel_1536);
-// bench_sizes!(2048, sequential_project_first_2048, sequential_project_late_2048, parallel_2048);
-// bench_sizes!(3072, sequential_project_first_3072, sequential_project_late_3072, parallel_3072);
-// bench_sizes!(4096, sequential_project_first_4096, sequential_project_late_4096, parallel_4096);
-// bench_sizes!(8192, sequential_project_first_8192, sequential_project_late_8192, parallel_8192);
+bench_sizes!(2048, sequential_project_first_2048, sequential_project_late_2048, parallel_2048);
+bench_sizes!(3072, sequential_project_first_3072, sequential_project_late_3072, parallel_3072);
+bench_sizes!(4096, sequential_project_first_4096, sequential_project_late_4096, parallel_4096);
+bench_sizes!(8192, sequential_project_first_8192, sequential_project_late_8192, parallel_8192);
