@@ -66,59 +66,42 @@ fn compute_inplace_late(orth: &mut Array2<f64>, norm: &mut Array1<f64>)
         v /= norm[i];
     }
 }
+macro_rules! create_bench {
+    ($n:expr, $name:ident, $function:ident) => {
+        create_bench!($n, $name, $function, {} );
+    };
+
+    ($n:expr, $name:ident, $function:path, $setup:block) => {
+        #[bench]
+        fn $name(bench: &mut test::Bencher) {
+            $setup;
+
+            let n = $n;
+
+            let dist = Normal::new(0.0, 1.0);
+            let matrix = Array2::random([n,n], dist);
+            let norm = Array1::zeros([n]);
+            let mut matrix = test::black_box(matrix);
+            let mut norm = test::black_box(norm);
+
+            bench.iter(|| {
+                $function(&mut matrix, &mut norm);
+            });
+        }
+    }
+}
 
 macro_rules! bench_sizes {
     ($n:expr, $name_first:ident, $name_late: ident, $name_parallel: ident) => {
-    #[bench]
-    fn $name_first(bench: &mut test::Bencher) {
-        let n = $n;
-
-        let dist = Normal::new(0.0, 1.0);
-        let matrix = Array2::random([n,n], dist);
-        let norm = Array1::zeros([n]);
-        let mut matrix = test::black_box(matrix);
-        let mut norm = test::black_box(norm);
-
-        bench.iter(|| {
-            compute_inplace_first(&mut matrix, &mut norm);
+        create_bench!($n, $name_first, compute_inplace_first);
+        create_bench!($n, $name_late, compute_inplace_late);
+        create_bench!($n, $name_parallel, ParallelModifiedGramSchmidt::compute_inplace, {
+            let n_cpus = cmp::max(1, num_cpus::get() / 2);
+            let rayon_cfg = rayon::Configuration::new().set_num_threads(n_cpus);
+            let _ = rayon::initialize(rayon_cfg);
         });
     }
-
-    #[bench]
-    fn $name_late(bench: &mut test::Bencher) {
-
-        let n = $n;
-
-        let dist = Normal::new(0.0, 1.0);
-        let matrix = Array2::random([n,n], dist);
-        let norm = Array1::zeros([n]);
-        let mut matrix = test::black_box(matrix);
-        let mut norm = test::black_box(norm);
-
-        bench.iter(|| {
-            compute_inplace_late(&mut matrix, &mut norm);
-        });
-    }
-
-    #[bench]
-    fn $name_parallel(bench: &mut test::Bencher) {
-        let n_cpus = cmp::max(1, num_cpus::get() / 2);
-        let rayon_cfg = rayon::Configuration::new().set_num_threads(n_cpus);
-        let _ = rayon::initialize(rayon_cfg);
-
-        let n = $n;
-
-        let dist = Normal::new(0.0, 1.0);
-        let matrix = Array2::random([n,n], dist);
-        let norm = Array1::zeros([n]);
-        let mut matrix = test::black_box(matrix);
-        let mut norm = test::black_box(norm);
-
-        bench.iter(|| {
-            ParallelModifiedGramSchmidt::compute_inplace(&mut matrix, &mut norm);
-        });
-    }
-}}
+}
 
 bench_sizes!( 256, sequential_project_first__256, sequential_project_late__256, parallel__256);
 bench_sizes!( 512, sequential_project_first__512, sequential_project_late__512, parallel__512);
