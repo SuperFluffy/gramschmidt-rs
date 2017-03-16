@@ -9,8 +9,8 @@ pub trait ParallelModifiedGramSchmidt: Sized + Clone + Default {
         where S1: DataMut<Elem = Self>,
               S2: DataMut<Elem = Self>;
 
-    // fn compute_inplace_no_norm<S1>(a: &mut ArrayBase<S1, Ix2>)
-    //     where S1: DataMut<Elem = Self>;
+    fn compute_inplace_no_norm<S1>(a: &mut ArrayBase<S1, Ix2>)
+        where S1: DataMut<Elem = Self>;
 
     fn compute_into<S1,S2,S3>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S3, Ix1>)
         where S1: Data<Elem = Self>,
@@ -50,12 +50,14 @@ impl ParallelModifiedGramSchmidt for f64 {
             // partially orthogonalizes the outstanding rows with respect to each current row.
             //
             // Another strategy would have been to use the already orthogonalized rows to
-            // orthogonalize the current row in one go and then normalize it.
+            // orthogonalize the current row in one go and then normalize it. This however is
+            // not as amenable to parallelization.
             norm[i] = normalization(v.as_slice().unwrap());
             v /= norm[i];
 
             todo.axis_iter_mut(Axis(0))
                 .into_par_iter()
+                .weight_max()
                 .for_each(|mut w| {
                     // v is already normalized
                     // let projection_factor = project(&v, &w);
@@ -65,24 +67,29 @@ impl ParallelModifiedGramSchmidt for f64 {
         }
     }
 
-    // fn compute_inplace_no_norm<S1>(orth: &mut ArrayBase<S1, Ix2>)
-    //     where S1: DataMut<Elem = Self>,
-    // {
-    //     let n_rows = orth.shape()[0];
+    fn compute_inplace_no_norm<S1>(orth: &mut ArrayBase<S1, Ix2>)
+        where S1: DataMut<Elem = Self>,
+    {
+        let n_rows = orth.shape()[0];
 
-    //     for i in 0..n_rows {
-    //         let (done, mut todo) = orth.view_mut().split_at(Axis(0), i);
+        let mut todo = orth.view_mut();
 
-    //         let mut v = todo.row_mut(0);
+        for _ in 0..n_rows {
+            let (mut v, rest) = todo.split_at(Axis(0), 1);
+            let mut v = v.row_mut(0);
+            todo = rest;
 
-    //         for w in done.inner_iter() {
-    //             // w is already normalized
-    //             // let projection_factor = project(&v, &w);
-    //             let projection_factor = v.dot(&w);
-    //             v.zip_mut_with(&w, |ev,ew| { *ev -= projection_factor * ew; });
-    //         }
+            v /= normalization(v.as_slice().unwrap());
 
-    //         v /= normalization(v.as_slice().unwrap());
-    //     }
-    // }
+            todo.axis_iter_mut(Axis(0))
+                .into_par_iter()
+                .weight_max()
+                .for_each(|mut w| {
+                    // w is already normalized
+                    // let projection_factor = project(&v, &w);
+                    let projection_factor = v.dot(&w);
+                    w.zip_mut_with(&v, |ew,ev| { *ew -= projection_factor * ev; });
+            });
+        }
+    }
 }

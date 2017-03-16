@@ -10,5 +10,6 @@ ndarray-parallel = "0.3"
 
 [dev-dependencies]
 ndarray-rand = "0.5"
+num_cpus = "1.2"
 rand = "0.3"
 rayon = "0.6"
