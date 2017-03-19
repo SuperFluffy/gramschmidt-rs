@@ -7,10 +7,12 @@ extern crate ndarray;
 extern crate ndarray_rand;
 extern crate num_cpus;
 extern crate rand;
+#[cfg(feature = "parallel")]
 extern crate rayon;
 extern crate test; // Built-in crate for benchmarking.
 
 use gram_schmidt::{normalization, ModifiedGramSchmidt};
+#[cfg(feature = "parallel")]
 use gram_schmidt::parallel::ParallelModifiedGramSchmidt;
 use ndarray::prelude::*;
 use ndarray_rand::RandomExt;
@@ -95,6 +97,8 @@ macro_rules! bench_sizes {
     ($n:expr, $name_first:ident, $name_late: ident, $name_parallel: ident) => {
         create_bench!($n, $name_first, compute_inplace_first);
         create_bench!($n, $name_late, compute_inplace_late);
+
+        #[cfg(feature = "parallel")]
         create_bench!($n, $name_parallel, ParallelModifiedGramSchmidt::compute_inplace, {
             let n_cpus = cmp::max(1, num_cpus::get() / 2);
             let rayon_cfg = rayon::Configuration::new().set_num_threads(n_cpus);

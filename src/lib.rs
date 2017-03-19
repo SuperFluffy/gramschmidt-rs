@@ -1,5 +1,7 @@
 extern crate blas;
 extern crate ndarray;
+
+#[cfg(feature="parallel")]
 extern crate ndarray_parallel;
 
 #[cfg(test)]
@@ -7,11 +9,14 @@ extern crate rand;
 #[cfg(test)]
 extern crate ndarray_rand;
 
+#[cfg(feature="parallel")]
 pub mod parallel;
+
 mod trait_definitions;
 mod trait_impls;
 mod utils;
 
+#[cfg(feature="parallel")]
 pub use parallel::ParallelModifiedGramSchmidt;
 pub use trait_definitions::{GramSchmidt, ModifiedGramSchmidt};
 pub use utils::*;
@@ -19,9 +24,13 @@ pub use utils::*;
 #[cfg(test)]
 mod tests {
     use ndarray::{arr1,arr2,Array1,Array2};
+    #[cfg(feature="parallel")]
     use ndarray_rand::RandomExt;
+    #[cfg(feature="parallel")]
     use rand;
     use super::{GramSchmidt,ModifiedGramSchmidt};
+
+    #[cfg(feature="parallel")]
     use super::ParallelModifiedGramSchmidt;
 
     #[test]
@@ -136,6 +145,7 @@ mod tests {
         assert!(super::orthogonal(&c_o,1e-14));
     }
 
+    #[cfg(feature="parallel")]
     #[test]
     fn sequential_equals_parallel() {
         let size = 256;
@@ -143,6 +153,7 @@ mod tests {
         let matrix = Array2::random([size,size], dist);
 
         let (orth_seq, norm_seq) = ModifiedGramSchmidt::compute(&matrix);
+
         let (orth_par, norm_par) = ParallelModifiedGramSchmidt::compute(&matrix);
 
         assert!(orth_seq.all_close(&orth_par, 1e-16));

@@ -3,10 +3,16 @@ name = "gram-schmidt"
 version = "0.2.0"
 authors = ["Richard Janis Goldschmidt <janis.beckert@gmail.com>"]
 
+[features]
+parallel = ["ndarray-parallel"]
+
 [dependencies]
 blas = "0.15"
 ndarray = "0.9"
-ndarray-parallel = "0.3"
+
+[dependencies.ndarray-parallel]
+version = "0.3"
+optional = true
 
 [dev-dependencies]
 ndarray-rand = "0.5"
