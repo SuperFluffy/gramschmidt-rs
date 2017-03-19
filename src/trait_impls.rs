@@ -52,7 +52,7 @@ impl ModifiedGramSchmidt for f64 {
                 // w is already normalized
                 // let projection_factor = project(&v, &w);
                 let projection_factor = v.dot(&w);
-                v.zip_mut_with(&w, |ev,ew| { *ev -= projection_factor * ew; });
+                v.scaled_add(-projection_factor, &w);
             }
 
             norm[i] = normalization(v.as_slice().unwrap());
@@ -74,7 +74,7 @@ impl ModifiedGramSchmidt for f64 {
                 // w is already normalized
                 // let projection_factor = project(&v, &w);
                 let projection_factor = v.dot(&w);
-                v.zip_mut_with(&w, |ev,ew| { *ev -= projection_factor * ew; });
+                v.scaled_add(-projection_factor, &w);
             }
 
             v /= normalization(v.as_slice().unwrap());

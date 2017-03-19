@@ -40,7 +40,7 @@ fn compute_inplace_first(orth: &mut Array2<f64>, norm: &mut Array1<f64>)
             // w is already normalized
             // let projection_factor = project(&v, &w);
             let projection_factor = v.dot(&w);
-            w.zip_mut_with(&v, |ew,ev| { *ew -= projection_factor * ev; });
+            w.scaled_add(-projection_factor, &v);
         }
     }
 }
@@ -59,7 +59,7 @@ fn compute_inplace_late(orth: &mut Array2<f64>, norm: &mut Array1<f64>)
             // w is already normalized
             // let projection_factor = project(&v, &w);
             let projection_factor = v.dot(&w);
-            v.zip_mut_with(&w, |ev,ew| { *ev -= projection_factor * ew; });
+            v.scaled_add(-projection_factor, &w);
         }
 
         norm[i] = normalization(v.as_slice().unwrap());

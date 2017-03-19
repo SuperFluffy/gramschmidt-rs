@@ -62,7 +62,7 @@ impl ParallelModifiedGramSchmidt for f64 {
                     // v is already normalized
                     // let projection_factor = project(&v, &w);
                     let projection_factor = v.dot(&w);
-                    w.zip_mut_with(&v, |ew,ev| { *ew -= projection_factor * ev; });
+                    w.scaled_add(-projection_factor, &v);
             });
         }
     }
@@ -88,7 +88,7 @@ impl ParallelModifiedGramSchmidt for f64 {
                     // w is already normalized
                     // let projection_factor = project(&v, &w);
                     let projection_factor = v.dot(&w);
-                    w.zip_mut_with(&v, |ew,ev| { *ew -= projection_factor * ev; });
+                    w.scaled_add(-projection_factor, &v);
             });
         }
     }
