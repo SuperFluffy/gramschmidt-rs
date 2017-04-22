@@ -1,12 +1,12 @@
 [package]
 name = "gram-schmidt"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Richard Janis Goldschmidt <janis.beckert@gmail.com>"]
 
 [dependencies]
 blas = "0.15"
-ndarray = ">= 0.7, <= 0.8"
+ndarray = "0.9"
 
 [dev-dependencies]
-ndarray-rand = "0.4"
+ndarray-rand = "0.5"
 rand = "0.3"

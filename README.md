@@ -3,3 +3,8 @@
 Orthogonalization and normalization of matrices in the Rust programming language and `rust-ndarray`.
 
 To be included in `linxal`.
+
+# Recent versions
+
++ `0.2.0`:
+    Update to `ndarray 0.9

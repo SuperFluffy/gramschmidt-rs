@@ -65,7 +65,7 @@ impl GramSchmidt for f64 {
 
             let mut v = todo.row_mut(0);
 
-            for w in done.inner_iter() {
+            for w in done.genrows() {
                 let projection_factor = project(&ref_vec, &w);
                 v.zip_mut_with(&w, |ev,ew| { *ev -= projection_factor * ew; });
             }
@@ -93,7 +93,7 @@ impl ModifiedGramSchmidt for f64 {
 
             let mut v = todo.row_mut(0);
 
-            for w in done.inner_iter() {
+            for w in done.genrows() {
                 // w is already normalized
                 // let projection_factor = project(&v, &w);
                 let projection_factor = v.dot(&w);
@@ -115,7 +115,7 @@ impl ModifiedGramSchmidt for f64 {
 
             let mut v = todo.row_mut(0);
 
-            for w in done.inner_iter() {
+            for w in done.genrows() {
                 // w is already normalized
                 // let projection_factor = project(&v, &w);
                 let projection_factor = v.dot(&w);
