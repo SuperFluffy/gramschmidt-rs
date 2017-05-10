@@ -12,13 +12,14 @@ extern crate ndarray_rand;
 #[cfg(feature="parallel")]
 mod parallel;
 
-mod trait_definitions;
+mod traits;
 mod trait_impls;
 mod utils;
 
 #[cfg(feature="parallel")]
 pub use parallel::ParallelModifiedGramSchmidt;
-pub use trait_definitions::{GramSchmidt, ModifiedGramSchmidt};
+
+pub use traits::{GramSchmidt, ModifiedGramSchmidt};
 pub use utils::*;
 
 #[cfg(test)]

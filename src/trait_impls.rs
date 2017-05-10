@@ -1,7 +1,7 @@
 use ndarray::{Data,DataMut};
 use ndarray::prelude::*;
 
-use trait_definitions::*;
+use traits::*;
 use utils::*;
 
 impl GramSchmidt for f64 {
