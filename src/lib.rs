@@ -1,150 +1,25 @@
 extern crate blas;
 extern crate ndarray;
 
-use ndarray::{Data,DataMut,LinalgScalar};
-use ndarray::prelude::*;
+#[cfg(feature="parallel")]
+extern crate ndarray_parallel;
 
-pub trait GramSchmidt: Sized + Clone + Default {
-    fn compute_into<S1,S2,S3>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S3, Ix1>)
-        where S1: Data<Elem = Self>,
-              S2: DataMut<Elem = Self>,
-              S3: DataMut<Elem = Self>;
+#[cfg(test)]
+extern crate rand;
+#[cfg(test)]
+extern crate ndarray_rand;
 
-    fn compute<S>(a: &ArrayBase<S, Ix2>) -> (Array<Self, Ix2>, Array<Self, Ix1>)
-        where S: Data<Elem = Self>
-    {
-        let mut o = a.to_owned();
-        let mut n = Array1::default(a.dim().1);
+#[cfg(feature="parallel")]
+mod parallel;
 
-        Self::compute_into(a, &mut o, &mut n);
-        (o, n)
-    }
-}
+mod trait_definitions;
+mod trait_impls;
+mod utils;
 
-pub trait ModifiedGramSchmidt: Sized + Clone + Default {
-    fn compute_inplace<S1,S2>(orth: &mut ArrayBase<S1, Ix2>, norm: &mut ArrayBase<S2, Ix1>)
-        where S1: DataMut<Elem = Self>,
-              S2: DataMut<Elem = Self>;
-
-    fn compute_inplace_no_norm<S1>(a: &mut ArrayBase<S1, Ix2>)
-        where S1: DataMut<Elem = Self>;
-
-    fn compute_into<S1,S2,S3>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S3, Ix1>)
-        where S1: Data<Elem = Self>,
-              S2: DataMut<Elem = Self>,
-              S3: DataMut<Elem = Self>,
-    {
-        orth.assign(&a);
-        Self::compute_inplace(orth, norm);
-    }
-
-    fn compute<S>(a: &ArrayBase<S, Ix2>) -> (Array<Self, Ix2>, Array<Self, Ix1>)
-        where S: Data<Elem = Self>
-    {
-        let mut o = a.to_owned();
-        let mut n = Array1::default(a.dim().1);
-
-        Self::compute_into(a, &mut o, &mut n);
-        (o, n)
-    }
-}
-
-impl GramSchmidt for f64 {
-    fn compute_into<S1,S2,S3>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S3, Ix1>)
-        where S1: Data<Elem = Self>,
-              S2: DataMut<Elem = Self>,
-              S3: DataMut<Elem = Self>
-    {
-        let n_rows = orth.shape()[0];
-
-        orth.row_mut(0).assign(&a.row(0));
-
-        for i in 0..n_rows {
-            let (done, mut todo) = orth.view_mut().split_at(Axis(0), i);
-            let ref_vec = a.row(i);
-
-            let mut v = todo.row_mut(0);
-
-            for w in done.genrows() {
-                let projection_factor = project(&ref_vec, &w);
-                v.zip_mut_with(&w, |ev,ew| { *ev -= projection_factor * ew; });
-            }
-
-            norm[i] = normalization(v.as_slice().unwrap());
-            v /= norm[i];
-        }
-    }
-}
-
-impl ModifiedGramSchmidt for f64 {
-    fn compute_inplace<S1,S2>(orth: &mut ArrayBase<S1, Ix2>, norm: &mut ArrayBase<S2, Ix1>)
-        where S1: DataMut<Elem = Self>,
-              S2: DataMut<Elem = Self>,
-    {
-        let n_rows = orth.shape()[0];
-
-        // Orthonormalize the current row with respect to all already orthonormalized rows.
-        //
-        // Another strategy would have been to normalize the current row, and then remove it
-        // from all not-yet-orthonormalized rows. However, benchmarking reveals that the first
-        // strategy is about 10% faster.
-        for i in 0..n_rows {
-            let (done, mut todo) = orth.view_mut().split_at(Axis(0), i);
-
-            let mut v = todo.row_mut(0);
-
-            for w in done.genrows() {
-                // w is already normalized
-                // let projection_factor = project(&v, &w);
-                let projection_factor = v.dot(&w);
-                v.zip_mut_with(&w, |ev,ew| { *ev -= projection_factor * ew; });
-            }
-
-            norm[i] = normalization(v.as_slice().unwrap());
-            v /= norm[i];
-        }
-    }
-
-    fn compute_inplace_no_norm<S1>(orth: &mut ArrayBase<S1, Ix2>)
-        where S1: DataMut<Elem = Self>,
-    {
-        let n_rows = orth.shape()[0];
-
-        for i in 0..n_rows {
-            let (done, mut todo) = orth.view_mut().split_at(Axis(0), i);
-
-            let mut v = todo.row_mut(0);
-
-            for w in done.genrows() {
-                // w is already normalized
-                // let projection_factor = project(&v, &w);
-                let projection_factor = v.dot(&w);
-                v.zip_mut_with(&w, |ev,ew| { *ev -= projection_factor * ew; });
-            }
-
-            v /= normalization(v.as_slice().unwrap());
-        }
-    }
-}
-
-pub fn orthogonal<S>(a: &ArrayBase<S,Ix2>, tol: f64) -> bool
-    where S: Data<Elem=f64>
-{
-    let b = a.dot(&a.t());
-    b.all_close(&Array2::eye(b.shape()[0]), tol)
-}
-
-pub fn normalization(v: &[f64]) -> f64 {
-    blas::c::dnrm2(v.len() as i32, v, 1)
-}
-
-pub fn project<A,S1,S2>(vector: &ArrayBase<S1,Ix1>, onto: &ArrayBase<S2,Ix1>) -> A
-    where S1: Data<Elem=A>,
-          S2: Data<Elem=A>,
-          A: LinalgScalar
-{
-    vector.dot(onto) / onto.dot(onto)
-}
+#[cfg(feature="parallel")]
+pub use parallel::ParallelModifiedGramSchmidt;
+pub use trait_definitions::{GramSchmidt, ModifiedGramSchmidt};
+pub use utils::*;
 
 #[cfg(test)]
 mod tests {
@@ -261,5 +136,25 @@ mod tests {
         assert!(b_n.all_close(&arr1(&[2.0615528128088303, 0.2910427500435996, 0.7, 3.0]), 1e-16));
 
         assert!(super::orthogonal(&c_o,1e-14));
+    }
+
+    #[cfg(feature="parallel")]
+    #[test]
+    fn sequential_equals_parallel() {
+
+        use ndarray_rand::RandomExt;
+        use rand;
+        use super::ParallelModifiedGramSchmidt;
+
+
+        let size = 256;
+        let dist = rand::distributions::Normal::new(0.0, 1.0);
+        let matrix = Array2::random([size,size], dist);
+
+        let (orth_seq, norm_seq) = ModifiedGramSchmidt::compute(&matrix);
+        let (orth_par, norm_par) = ParallelModifiedGramSchmidt::compute(&matrix);
+
+        assert!(orth_seq.all_close(&orth_par, 1e-16));
+        assert!(norm_seq.all_close(&norm_par, 1e-16));
     }
 }

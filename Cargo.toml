@@ -7,6 +7,16 @@ authors = ["Richard Janis Goldschmidt <janis.beckert@gmail.com>"]
 blas = "0.15"
 ndarray = "0.9"
 
+[dependencies.ndarray-parallel]
+version = "0.3"
+optional = true
+
 [dev-dependencies]
 ndarray-rand = "0.5"
 rand = "0.3"
+
+[features]
+parallel = ["ndarray-parallel"]
+
+# A feature used for testing and benching.
+test = ["parallel"]

@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+# Set to 1 to not have two separate thread pools choke each other (one for
+# OpenMP, one for Rayon).
+export OMP_NUM_THREADS=1
+
+# Let Rayon control the number of threads. Change to benchmark a specific number.
+export RAYON_RS_NUM_CPUS=0
+
+export RUSTFLAGS=-Ctarget-cpu=native
+
+cargo bench --features test
