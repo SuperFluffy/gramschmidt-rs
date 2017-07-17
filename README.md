@@ -6,5 +6,6 @@ To be included in `linxal`.
 
 # Recent versions
 
++ `0.3.0`: Update to `ndarray 0.10`, `ndarray-parallel 0.5`
 + `0.2.1`: Added a parallelized algorithm using `rayon`
 + `0.2.0`: Update to `ndarray 0.9`
