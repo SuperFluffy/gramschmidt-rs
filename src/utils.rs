@@ -11,7 +11,9 @@ pub fn orthogonal<S>(a: &ArrayBase<S,Ix2>, tol: f64) -> bool
 }
 
 pub fn normalization(v: &[f64]) -> f64 {
-    blas::c::dnrm2(v.len() as i32, v, 1)
+    unsafe {
+        blas::c::dnrm2(v.len() as i32, v, 1)
+    }
 }
 
 pub fn project<A,S1,S2>(vector: &ArrayBase<S1,Ix1>, onto: &ArrayBase<S2,Ix1>) -> A

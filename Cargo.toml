@@ -4,8 +4,11 @@ version = "0.3.0"
 authors = ["Richard Janis Goldschmidt <janis.beckert@gmail.com>"]
 
 [dependencies]
-blas = "0.15"
 ndarray = "0.10"
+
+[dependencies.blas]
+version = "0.16"
+default-features = false
 
 [dependencies.ndarray-parallel]
 version = "0.5"
@@ -19,4 +22,5 @@ rand = "0.3"
 parallel = ["ndarray-parallel"]
 
 # A feature used for testing and benching.
-test = ["parallel"]
+blas-openblas = ["blas/openblas"]
+test = ["blas-openblas", "parallel"]
