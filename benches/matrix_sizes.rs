@@ -5,6 +5,7 @@
 extern crate gram_schmidt;
 extern crate ndarray;
 extern crate ndarray_rand;
+extern crate openblas_src;
 extern crate rand;
 
 extern crate test; // Built-in crate for benchmarking.

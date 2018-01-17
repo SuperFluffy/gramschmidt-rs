@@ -1,4 +1,4 @@
-extern crate blas;
+extern crate cblas;
 extern crate ndarray;
 
 #[cfg(feature="parallel")]
@@ -8,6 +8,8 @@ extern crate ndarray_parallel;
 extern crate rand;
 #[cfg(test)]
 extern crate ndarray_rand;
+#[cfg(test)]
+extern crate openblas_src;
 
 #[cfg(feature="parallel")]
 mod parallel;

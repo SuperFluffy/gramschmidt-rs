@@ -1,4 +1,4 @@
-use blas;
+use cblas;
 
 use ndarray::{Data,LinalgScalar};
 use ndarray::prelude::*;
@@ -12,7 +12,7 @@ pub fn orthogonal<S>(a: &ArrayBase<S,Ix2>, tol: f64) -> bool
 
 pub fn normalization(v: &[f64]) -> f64 {
     unsafe {
-        blas::c::dnrm2(v.len() as i32, v, 1)
+        cblas::dnrm2(v.len() as i32, v, 1)
     }
 }
 

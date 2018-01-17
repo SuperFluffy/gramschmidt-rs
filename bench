@@ -9,4 +9,4 @@ export RAYON_RS_NUM_CPUS=0
 
 export RUSTFLAGS=-Ctarget-cpu=native
 
-cargo bench --features test
+cargo +nightly bench --features test
