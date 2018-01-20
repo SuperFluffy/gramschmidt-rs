@@ -105,7 +105,6 @@ impl ReorthogonalizedGramSchmidt {
         }
     }
 
-
     /// Computes a QR decomposition using the classical, reorthogonalized Gram Schmidt
     /// orthonormalization of the matrix `a`.
     ///
@@ -116,6 +115,7 @@ impl ReorthogonalizedGramSchmidt {
     /// extern crate gram_schmidt;
     /// extern crate ndarray;
     /// extern crate ndarray_rand;
+    /// extern crate openblas_src;
     /// extern crate rand;
     ///
     /// use gram_schmidt::ReorthogonalizedGramSchmidt;
