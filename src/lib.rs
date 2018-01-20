@@ -14,6 +14,8 @@ extern crate openblas_src;
 #[cfg(feature="parallel")]
 mod parallel;
 
+mod cgs;
+mod cgs2;
 mod traits;
 mod trait_impls;
 mod utils;
@@ -22,6 +24,8 @@ mod utils;
 pub use parallel::ParallelModifiedGramSchmidt;
 
 pub use traits::{GramSchmidt, ModifiedGramSchmidt};
+pub use cgs::ClassicalGramSchmidt;
+pub use cgs2::ReorthogonalizedGramSchmidt;
 pub use utils::*;
 
 #[cfg(test)]
@@ -52,7 +56,7 @@ mod tests {
     }
 
     #[test]
-    fn gram_schmidt() {
+    fn classical_gram_schmidt() {
         let a = arr2(&[[1.0, 0.0, 0.0, 0.0],
                        [0.0, 1.0, 0.0, 0.0],
                        [0.0, 0.0, 1.0, 0.0],
