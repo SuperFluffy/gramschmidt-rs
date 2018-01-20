@@ -17,7 +17,8 @@ mod parallel;
 mod cgs;
 mod cgs2;
 mod mgs;
-mod utils;
+
+pub(crate) mod utils;
 
 #[cfg(feature="parallel")]
 pub use parallel::ParallelModifiedGramSchmidt;
@@ -25,34 +26,9 @@ pub use parallel::ParallelModifiedGramSchmidt;
 pub use cgs::ClassicalGramSchmidt;
 pub use cgs2::ReorthogonalizedGramSchmidt;
 pub use mgs::ModifiedGramSchmidt;
-pub use utils::*;
 
 #[cfg(test)]
 mod tests {
-    use ndarray::arr1;
-
-    #[test]
-    fn normalization() {
-        let a = &[1.0,2.0,3.0,4.0,5.0];
-
-        let n_manual = f64::sqrt(1.0 + 4.0 + 9.0 + 16.0 + 25.0);
-        let n_calculated = super::normalization(a);
-
-        println!("Norm, manual: {}", n_manual);
-        println!("Norm, function: {}", n_calculated);
-
-        assert_eq!(n_manual, n_calculated);
-    }
-
-    #[test]
-    fn projection() {
-        let a = arr1(&[1.0,2.0,3.0,4.0,5.0]);
-        let p = super::project(&a,&a);
-
-        println!("Projection: {}", p);
-        assert_eq!(p, 1.0);
-    }
-
     // #[test]
     // fn classical_gram_schmidt() {
     //     let a = arr2(&[[1.0, 0.0, 0.0, 0.0],
