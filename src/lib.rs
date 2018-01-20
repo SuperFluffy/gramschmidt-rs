@@ -23,15 +23,15 @@ mod utils;
 #[cfg(feature="parallel")]
 pub use parallel::ParallelModifiedGramSchmidt;
 
-pub use traits::{GramSchmidt, ModifiedGramSchmidt};
 pub use cgs::ClassicalGramSchmidt;
 pub use cgs2::ReorthogonalizedGramSchmidt;
+pub use traits::ModifiedGramSchmidt;
 pub use utils::*;
 
 #[cfg(test)]
 mod tests {
     use ndarray::{arr1,arr2,Array1,Array2};
-    use super::{GramSchmidt,ModifiedGramSchmidt};
+    use super::ModifiedGramSchmidt;
 
     #[test]
     fn normalization() {

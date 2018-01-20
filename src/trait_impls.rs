@@ -1,35 +1,9 @@
+use cblas;
 use ndarray::{Data,DataMut};
 use ndarray::prelude::*;
 
 use traits::*;
 use utils::*;
-
-impl GramSchmidt for f64 {
-    fn compute_into<S1,S2,S3>(a: &ArrayBase<S1, Ix2>, orth: &mut ArrayBase<S2, Ix2>, norm: &mut ArrayBase<S3, Ix1>)
-        where S1: Data<Elem = Self>,
-              S2: DataMut<Elem = Self>,
-              S3: DataMut<Elem = Self>
-    {
-        let n_rows = orth.shape()[0];
-
-        orth.row_mut(0).assign(&a.row(0));
-
-        for i in 0..n_rows {
-            let (done, mut todo) = orth.view_mut().split_at(Axis(0), i);
-            let ref_vec = a.row(i);
-
-            let mut v = todo.row_mut(0);
-
-            for w in done.genrows() {
-                let projection_factor = project(&ref_vec, &w);
-                v.zip_mut_with(&w, |ev,ew| { *ev -= projection_factor * ew; });
-            }
-
-            norm[i] = normalization(v.as_slice().unwrap());
-            v /= norm[i];
-        }
-    }
-}
 
 impl ModifiedGramSchmidt for f64 {
     fn compute_inplace<S1,S2>(orth: &mut ArrayBase<S1, Ix2>, norm: &mut ArrayBase<S2, Ix1>)
