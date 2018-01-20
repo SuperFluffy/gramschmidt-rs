@@ -321,16 +321,70 @@ impl ReorthogonalizedGramSchmidt {
 mod tests {
     use ndarray::prelude::*;
     use super::*;
+    use utils;
+
+    lazy_static!(
+        static ref UNITY: Array2<f64> = arr2(
+            &[[1.0, 0.0, 0.0, 0.0],
+              [0.0, 1.0, 0.0, 0.0],
+              [0.0, 0.0, 1.0, 0.0],
+              [0.0, 0.0, 0.0, 1.0]]
+        );
+    );
+
+    lazy_static!(
+        static ref SMALL: Array2<f64> = arr2(
+            &[[2.0, 0.5, 0.0, 0.0],
+              [0.0, 0.3, 0.0, 0.0],
+              [0.0, 1.0, 0.7, 0.0],
+              [0.0, 0.0, 0.0, 3.0]]
+        );
+    );
+
+    lazy_static!(
+        static ref LARGE: Array2<f64> = arr2(
+            &[[-4.079764601288893, 4.831491499921403, -2.9560001027996132, -0.02239325297550033, -0.2672544204261703, -0.07718850306444144],
+              [1.2917480323712418, 0.030479388871438983, 0.604549448561548, 0.013409783846041783, 0.037439247530467186, 0.03153579130305008],
+              [-47.584641085515464, 5.501371846864031, 41.39822251681311, -33.69079455346558, 43.13388644338738, 68.7695035292409],
+              [2.5268795799504997, 25.418530275775225, 33.473125141381374, 77.3391516894698, -44.091836957161426, 45.10932299622911],
+              [-20.383209804181938, -19.163209972229616, 0.09795435026201423, -53.296988576627484, -88.482334971421, 16.757575995918756],
+              [62.270964677492124, -75.82678462673792, -0.6889077708993588, 2.2569901796884064, 9.21906803233946, 44.891962279862234]]
+        );
+    );
+
     #[test]
-    fn unity_is_unity() {
-        let a = arr2(&[[1.0, 0.0, 0.0, 0.0],
-                       [0.0, 1.0, 0.0, 0.0],
-                       [0.0, 0.0, 1.0, 0.0],
-                       [0.0, 0.0, 0.0, 1.0]]);
+    fn unity_stays_unity() {
+        let mut cgs2 = ReorthogonalizedGramSchmidt::from_matrix(&*UNITY);
+        cgs2.compute(&*UNITY);
 
-        let mut cgs2 = ReorthogonalizedGramSchmidt::from_matrix(&a);
-        cgs2.compute(&a);
+        assert_eq!(&*UNITY, &cgs2.q().dot(cgs2.r()));
+    }
 
-        assert_eq!(a, cgs2.q().dot(cgs2.r()));
+    #[test]
+    fn small_orthogonal() {
+        let mut cgs2 = ReorthogonalizedGramSchmidt::from_matrix(&*SMALL);
+        cgs2.compute(&*SMALL);
+        assert!(utils::orthogonal(cgs2.q(),1e-14));
+    }
+
+    #[test]
+    fn small_qr_returns_original() {
+        let mut cgs2 = ReorthogonalizedGramSchmidt::from_matrix(&*SMALL);
+        cgs2.compute(&*SMALL);
+        assert!(SMALL.all_close(&cgs2.q().dot(cgs2.r()), 1e-14));
+    }
+
+    #[test]
+    fn large_orthogonal() {
+        let mut cgs2 = ReorthogonalizedGramSchmidt::from_matrix(&*LARGE);
+        cgs2.compute(&*LARGE);
+        assert!(utils::orthogonal(cgs2.q(),1e-14));
+    }
+
+    #[test]
+    fn large_qr_returns_original() {
+        let mut cgs2 = ReorthogonalizedGramSchmidt::from_matrix(&*LARGE);
+        cgs2.compute(&*LARGE);
+        assert!(LARGE.all_close(&cgs2.q().dot(cgs2.r()), 1e-13));
     }
 }

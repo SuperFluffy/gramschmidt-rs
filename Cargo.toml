@@ -15,6 +15,7 @@ version = "0.7"
 optional = true
 
 [dev-dependencies]
+lazy_static = "1.0"
 ndarray-rand = "0.7"
 rand = "0.4"
 
