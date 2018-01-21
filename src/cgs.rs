@@ -11,7 +11,6 @@ pub struct ClassicalGramSchmidt {
     q: Array2<f64>,
     r: Array2<f64>,
     memory_order: cblas::Layout,
-    dirty: bool,
 }
 
 impl ClassicalGramSchmidt {
@@ -52,11 +51,11 @@ impl ClassicalGramSchmidt {
         };
 
         let array_shape = a.raw_dim().set_f(is_fortran);
+
         ClassicalGramSchmidt {
             q: Array2::zeros(array_shape),
             r: Array2::zeros(array_shape),
             memory_order,
-            dirty: false,
         }
     }
 
@@ -92,7 +91,6 @@ impl ClassicalGramSchmidt {
             q: Array2::zeros(array_shape),
             r: Array2::zeros(array_shape),
             memory_order,
-            dirty: false,
         }
     }
 
@@ -135,12 +133,6 @@ impl ClassicalGramSchmidt {
         } else {
             panic!("Array not contiguous!")
         };
-
-        // If the struct was previously used for a computation, r needs to be cleaned.
-        // q is always overwritten, but r is not.
-        if self.dirty {
-            self.r.fill(0.0);
-        }
 
         for i in 0..n_cols {
             self.q.column_mut(i).assign(&a.column(i));
