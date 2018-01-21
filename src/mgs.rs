@@ -11,7 +11,6 @@ pub struct ModifiedGramSchmidt {
     q: Array2<f64>,
     r: Array2<f64>,
     memory_order: cblas::Layout,
-    dirty: bool,
 }
 
 impl ModifiedGramSchmidt {
@@ -54,7 +53,6 @@ impl ModifiedGramSchmidt {
             q: Array2::zeros(array_shape),
             r: Array2::zeros(array_shape),
             memory_order,
-            dirty: false,
         }
     }
 
@@ -89,7 +87,6 @@ impl ModifiedGramSchmidt {
             q: Array2::zeros(array_shape),
             r: Array2::zeros(array_shape),
             memory_order,
-            dirty: false,
         }
     }
 
