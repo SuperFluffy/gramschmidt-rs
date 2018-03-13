@@ -14,6 +14,8 @@ extern crate openblas_src;
 #[cfg(test)]
 extern crate rand;
 
+#[macro_use]
+mod test_macros;
 mod cgs;
 mod cgs2;
 mod mgs;
