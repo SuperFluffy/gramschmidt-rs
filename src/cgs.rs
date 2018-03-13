@@ -22,12 +22,12 @@ impl ClassicalGramSchmidt {
     /// # Example
     ///
     /// ```
-    /// extern crate gram_schmidt;
+    /// extern crate gramschmidt;
     /// extern crate ndarray;
     /// extern crate ndarray_rand;
     /// extern crate rand;
     ///
-    /// use gram_schmidt::ClassicalGramSchmidt;
+    /// use gramschmidt::ClassicalGramSchmidt;
     /// use ndarray::Array2;
     /// use ndarray_rand::RandomExt;
     /// use rand::distributions::Normal;
@@ -67,9 +67,9 @@ impl ClassicalGramSchmidt {
     /// # Example
     ///
     /// ```
-    /// extern crate gram_schmidt;
+    /// extern crate gramschmidt;
     ///
-    /// use gram_schmidt::ClassicalGramSchmidt;
+    /// use gramschmidt::ClassicalGramSchmidt;
     ///
     /// # fn main() {
     /// let fortran_order = false;
@@ -101,12 +101,12 @@ impl ClassicalGramSchmidt {
     /// previously configured. Panics otherwise.
     ///
     /// ```
-    /// extern crate gram_schmidt;
+    /// extern crate gramschmidt;
     /// extern crate ndarray;
     /// extern crate ndarray_rand;
     /// extern crate rand;
     ///
-    /// use gram_schmidt::ClassicalGramSchmidt;
+    /// use gramschmidt::ClassicalGramSchmidt;
     /// use ndarray::Array2;
     /// use ndarray_rand::RandomExt;
     /// use rand::distributions::Normal;
