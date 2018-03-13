@@ -32,6 +32,7 @@ fn main() {
 
 # Recent versions
 
++ `0.4.1`: Fixed doc tests and expanded + simplified tests.
 + `0.4.0`: Major rework of the library structure:
     + The algorithms are now configured via structs, the traits are dropped.
     + Provide the structs `ClassicalGramSchmidt`, `ModifiedGramSchmidt`, and

@@ -1,6 +1,6 @@
 [package]
 name = "gramschmidt"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Richard Janis Goldschmidt <janis.beckert@gmail.com>"]
 license = "MIT"
 description = "Classical, Modified, Reorthogonalized Gram Schmidt Orthogonalization and QR decompostion"
