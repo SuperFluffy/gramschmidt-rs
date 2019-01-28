@@ -1,4 +1,5 @@
 use cblas;
+
 use ndarray::{
     Data,
     IntoDimension,
@@ -22,11 +23,6 @@ impl ModifiedGramSchmidt {
     /// # Example
     ///
     /// ```
-    /// extern crate gramschmidt;
-    /// extern crate ndarray;
-    /// extern crate ndarray_rand;
-    /// extern crate rand;
-    ///
     /// use gramschmidt::ModifiedGramSchmidt;
     /// use ndarray::Array2;
     /// use ndarray_rand::RandomExt;
@@ -64,8 +60,6 @@ impl ModifiedGramSchmidt {
     /// # Example
     ///
     /// ```
-    /// extern crate gramschmidt;
-    ///
     /// use gramschmidt::ModifiedGramSchmidt;
     ///
     /// # fn main() {
@@ -97,11 +91,6 @@ impl ModifiedGramSchmidt {
     /// previously configured. Panics otherwise.
     ///
     /// ```
-    /// extern crate gramschmidt;
-    /// extern crate ndarray;
-    /// extern crate ndarray_rand;
-    /// extern crate rand;
-    ///
     /// use gramschmidt::ModifiedGramSchmidt;
     /// use ndarray::Array2;
     /// use ndarray_rand::RandomExt;

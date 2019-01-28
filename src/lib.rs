@@ -1,21 +1,6 @@
-extern crate cblas;
-extern crate ndarray;
-
-#[cfg(test)]
-#[macro_use]
-extern crate lazy_static;
-
-#[cfg(test)]
-extern crate ndarray_rand;
-
-#[cfg(test)]
-extern crate openblas_src;
-
-#[cfg(test)]
-extern crate rand;
-
 #[macro_use]
 mod test_macros;
+
 mod cgs;
 mod cgs2;
 mod mgs;

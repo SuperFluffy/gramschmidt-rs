@@ -2,9 +2,11 @@ macro_rules! generate_tests {
     ($method:ident, $tolerance:expr) => {
         #[cfg(test)]
         mod tests {
+            extern crate openblas_src;
+
+            use lazy_static::lazy_static;
             use ndarray::prelude::*;
             use super::*;
-            use utils;
 
             lazy_static!(
                 static ref UNITY: Array2<f64> = arr2(
@@ -80,7 +82,7 @@ macro_rules! generate_tests {
             fn small_orthogonal() {
                 let mut method = $method::from_matrix(&*SMALL);
                 method.compute(&*SMALL);
-                assert!(utils::orthogonal(method.q(),$tolerance));
+                assert!(crate::utils::orthogonal(method.q(),$tolerance));
             }
 
             #[test]
@@ -94,7 +96,7 @@ macro_rules! generate_tests {
             fn large_orthogonal() {
                 let mut method = $method::from_matrix(&*LARGE);
                 method.compute(&*LARGE);
-                assert!(utils::orthogonal(method.q(),$tolerance));
+                assert!(crate::utils::orthogonal(method.q(),$tolerance));
             }
 
             #[test]
@@ -116,7 +118,7 @@ macro_rules! generate_tests {
             fn f_order_small_orthogonal() {
                 let mut method = $method::from_matrix(&*F_SMALL);
                 method.compute(&*F_SMALL);
-                assert!(utils::orthogonal(method.q(),$tolerance));
+                assert!(crate::utils::orthogonal(method.q(),$tolerance));
             }
 
             #[test]
@@ -130,7 +132,7 @@ macro_rules! generate_tests {
             fn f_order_large_orthogonal() {
                 let mut method = $method::from_matrix(&*F_LARGE);
                 method.compute(&*F_LARGE);
-                assert!(utils::orthogonal(method.q(),$tolerance));
+                assert!(crate::utils::orthogonal(method.q(),$tolerance));
             }
 
             #[test]

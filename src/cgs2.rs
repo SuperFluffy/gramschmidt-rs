@@ -26,11 +26,6 @@ impl ReorthogonalizedGramSchmidt {
     /// # Example
     ///
     /// ```
-    /// extern crate gramschmidt;
-    /// extern crate ndarray;
-    /// extern crate ndarray_rand;
-    /// extern crate rand;
-    ///
     /// use gramschmidt::ReorthogonalizedGramSchmidt;
     /// use ndarray::Array2;
     /// use ndarray_rand::RandomExt;
@@ -72,8 +67,6 @@ impl ReorthogonalizedGramSchmidt {
     /// # Example
     ///
     /// ```
-    /// extern crate gramschmidt;
-    ///
     /// use gramschmidt::ReorthogonalizedGramSchmidt;
     ///
     /// # fn main() {
@@ -109,11 +102,7 @@ impl ReorthogonalizedGramSchmidt {
     /// previously configured. Panics otherwise.
     ///
     /// ```
-    /// extern crate gramschmidt;
-    /// extern crate ndarray;
-    /// extern crate ndarray_rand;
     /// extern crate openblas_src;
-    /// extern crate rand;
     ///
     /// use gramschmidt::ReorthogonalizedGramSchmidt;
     /// use ndarray::Array2;
