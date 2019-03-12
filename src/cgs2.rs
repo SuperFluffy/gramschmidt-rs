@@ -1,301 +1,246 @@
 use cblas;
 use ndarray::{
     Data,
-    IntoDimension,
+    ShapeBuilder,
 };
 use ndarray::prelude::*;
 use std::slice;
 
+use crate::{
+    Error,
+    GramSchmidt,
+    Result,
+    utils::{
+        as_slice_with_layout,
+        get_layout,
+    }
+};
+
+/// A reorthogonalized Gram Schmidt factorization, also known as `CGS2` in the literature. See
+/// [Giraud et al.] for a definition. It performs two successive classical Gram Schmidt procedures,
+/// which has a higher performance than modified Gram Schmidt while providing a similar numerical
+/// stability.
+///
+/// Use this struct via the [`GramSchmidt` trait].
+///
+/// [Giraud et al.]: https://doi.org/10.1007/s00211-005-0615-4
+/// [`GramSchmidt` trait]: GramSchmidt
 #[derive(Clone, Debug)]
-pub struct ReorthogonalizedGramSchmidt {
+pub struct Reorthogonalized {
     q: Array2<f64>,
     r: Array2<f64>,
     work_vector: Array1<f64>,
-    memory_order: cblas::Layout,
+    memory_layout: cblas::Layout,
 }
 
-impl ReorthogonalizedGramSchmidt {
-    /// Reserves the memory for a QR decomposition via a classical, reorthogonalized Gram Schmidt
-    /// orthogonalization using the dimensions of a sample matrix. This is also known as CGS2 in
-    /// the literature. See [Giraud et al.] for a definition.
-    ///
-    /// The resulting object can be used to orthogonalize matrices of the same dimensions.
-    ///
-    /// [Giraud et al.]: https://doi.org/10.1007/s00211-005-0615-4
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use gramschmidt::ReorthogonalizedGramSchmidt;
-    /// use ndarray::Array2;
-    /// use ndarray_rand::RandomExt;
-    /// use rand::distributions::Normal;
-    ///
-    /// # fn main() {
-    ///
-    /// let matrix = Array2::random((10,10), Normal::new(0.0, 1.0));
-    /// let mut cgs2 = ReorthogonalizedGramSchmidt::from_matrix(&matrix);
-    ///
-    /// # }
-    /// ```
-    pub fn from_matrix<S>(a: &ArrayBase<S, Ix2>) -> Self
-        where S: Data<Elem = f64>
+impl GramSchmidt for Reorthogonalized {
+    fn from_shape<T>(shape: T) -> Result<Self>
+        where T: ShapeBuilder<Dim = Ix2>,
     {
-        let (is_fortran, memory_order) = if let Some(_) = a.as_slice() {
-            (false, cblas::Layout::RowMajor)
-        } else if let Some(_) = a.as_slice_memory_order() {
-            (true, cblas::Layout::ColumnMajor)
-        } else {
-            panic!("Array not contiguous!")
+        // Unfortunately we cannot check the shape itself to see if it's
+        // in ColumnMajor or RowMajor layout. So we need to first construct
+        // an array and then check that.
+        let shape = shape.into_shape();
+        let q = Array2::zeros(shape);
+        let memory_layout = match get_layout(&q) {
+            Some(layout) => layout,
+            None => Err(Error::NonContiguous)?,
         };
+        let r = q.clone();
 
-        let array_shape = a.raw_dim().set_f(is_fortran);
+        // Similarly to the layout, we don't have direct access to the array dimensions via
+        // `Shape`, and thus need to go via `Dim::Pattern` of the already constructed arrays.
+        let work_vector = Array1::zeros(q.dim().0);
 
-        ReorthogonalizedGramSchmidt {
-            q: Array2::zeros(array_shape),
-            r: Array2::zeros(array_shape),
-            work_vector: Array1::zeros(a.dim().0),
-            memory_order,
-        }
+        Ok(Self {
+            q,
+            r,
+            work_vector,
+            memory_layout,
+        })
     }
 
-    /// Reserves the memory for a QR decomposition via a classical, reorthogonalized Gram Schmidt
-    /// orthogonalization using a shape.
-    ///
-    /// The resulting object can be used to orthogonalize matrices of the same dimensions.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use gramschmidt::ReorthogonalizedGramSchmidt;
-    ///
-    /// # fn main() {
-    /// let fortran_order = false;
-    /// let mut cgs2 = ReorthogonalizedGramSchmidt::from_shape((10,10), fortran_order);
-    ///
-    /// # }
-    /// ```
-    pub fn from_shape<T>(shape: T, fortran_order: bool) -> Self
-        where T: IntoDimension<Dim = Ix2>,
-    {
-        let dimension = shape.into_dimension();
-        let rows = dimension.into_pattern().0;
-        let array_shape = dimension.set_f(fortran_order);
-        let memory_order = if fortran_order {
-            cblas::Layout::ColumnMajor
-        } else {
-            cblas::Layout::RowMajor
-        };
-
-        ReorthogonalizedGramSchmidt {
-            q: Array2::zeros(array_shape),
-            r: Array2::zeros(array_shape),
-            work_vector: Array1::zeros(rows),
-            memory_order,
-        }
-    }
-
-    /// Computes a QR decomposition using the classical, reorthogonalized Gram Schmidt
-    /// orthonormalization of the matrix `a`.
-    ///
-    /// The input matrix `a` has to have exactly the same dimension and memory layout as was
-    /// previously configured. Panics otherwise.
-    ///
-    /// ```
-    /// extern crate openblas_src;
-    ///
-    /// use gramschmidt::ReorthogonalizedGramSchmidt;
-    /// use ndarray::Array2;
-    /// use ndarray_rand::RandomExt;
-    /// use rand::distributions::Normal;
-    ///
-    /// # fn main() {
-    ///
-    /// let matrix = Array2::random((10,10), Normal::new(0.0, 1.0));
-    /// let mut cgs2 = ReorthogonalizedGramSchmidt::from_matrix(&matrix);
-    /// cgs2.compute(&matrix);
-    ///
-    /// # }
-    /// ```
-    pub fn compute<S>(&mut self, a: &ArrayBase<S, Ix2>)
+    fn compute<S>(&mut self, a: &ArrayBase<S, Ix2>) -> Result<()>
         where S: Data<Elem = f64>,
     {
+        use cblas::Layout::*;
+        use Error::*;
+
         assert_eq!(a.shape(), self.q.shape());
-        // assert_eq!(a.strides(), self.q.strides());
 
         let (n_rows, n_cols) = self.q.dim();
 
-        let (a_column_inc, a_layout) = if let Some(_) = a.as_slice() {
-            (n_cols as i32, cblas::Layout::RowMajor)
-        } else if let Some(_) = a.as_slice_memory_order() {
-            (1, cblas::Layout::ColumnMajor)
-        } else {
-            panic!("Array not contiguous!")
+        let a_slice = match (self.memory_layout, as_slice_with_layout(&a)) {
+            (a, Some((_, b))) if a != b => Err(IncompatibleLayouts)?,
+            (_, Some((a_slice, _))) => a_slice,
+            (_, None) => Err(NonContiguous)?,
         };
+
+        // leading_dim: the number of elements in the leading dimension
+        // next_elem: how many elements to jump to get to the next element in a column
+        // next_col: how many elements in the array to jump to get to the next column
+        let (leading_dim, next_elem, next_col) = match self.memory_layout {
+            ColumnMajor => (n_rows as i32, 1, n_rows),
+            RowMajor => (n_cols as i32, n_cols as i32, 1),
+        };
+
 
         for i in 0..n_cols {
             self.q.column_mut(i).assign(&a.column(i));
-             
-            let a_column = match a_layout {
-                cblas::Layout::RowMajor => &a.as_slice_memory_order().unwrap()[i..],
-                cblas::Layout::ColumnMajor => &a.as_slice_memory_order().unwrap()[n_rows * i..],
+
+            let len = self.q.len();
+            let q_ptr = self.q.as_mut_ptr();
+            let q_matrix = unsafe {
+                slice::from_raw_parts(q_ptr, len)
+            };
+
+            let q_column = match self.memory_layout {
+                ColumnMajor => {
+                    let offset = n_rows * i;
+                    unsafe {
+                        slice::from_raw_parts_mut(q_ptr.offset(offset as isize), len - offset)
+                    }
+                },
+
+                RowMajor => {
+                    let offset = i as isize;
+                    unsafe {
+                        slice::from_raw_parts_mut(q_ptr.offset(offset), len - i)
+                    }
+                },
+
             };
 
             if i > 0 {
-                let (lda, r_column, r_inc) = match self.memory_order {
-                    cblas::Layout::RowMajor => {
-                        let r_column = &mut self.r.as_slice_memory_order_mut().unwrap()[i..];
-                        (n_cols as i32, r_column, n_cols as i32)
-                    },
+                let a_column = &a_slice[next_col * i..];
 
-                    cblas::Layout::ColumnMajor => {
-                        let r_column = &mut self.r.as_slice_memory_order_mut().unwrap()[n_rows * i..];
-                        (n_rows as i32, r_column, 1)
-                    },
-                };
-
-                // The unsafe blocks below are because we need several overlapping slices into the
-                // q matrix. The mutable `q_column` is the i-th orthogonal vector which is currently
-                // being sought. The immutable `q` represents the already found vectors (vectors 0
-                // to i-1). Appropriately choosing the offset, lda, and increment makes sure that
-                // blas does not access the same memory location.
+                // NOTE: This unwrap is save, because we have made sure at creation that r_slice is
+                // contiguous.
                 //
-                // This is only necessary for row major formats. In column major formats there
-                // won't be overlaps.
-                let len = self.q.len();
-                let q_ptr = self.q.as_mut_ptr();
-                let q = unsafe {
-                    slice::from_raw_parts(q_ptr, len)
-                };
-                let (q_column, q_inc) = match self.memory_order {
-                    cblas::Layout::RowMajor => {
-                        let offset = i as isize;
-                        let q_column = unsafe {
-                            slice::from_raw_parts_mut(q_ptr.offset(offset), len - i)
-                        };
-                        (q_column, n_cols as i32)
-                    },
+                // NOTE: Unlike a_slice above which is defined outside the loop, we are mutating r at the
+                // end of the loop, which invalidates the mutable borrow. We thus have to pull the
+                // slice definition into the loop.
+                let r_slice = self.r.as_slice_memory_order_mut().unwrap();
+                let r_column = &mut r_slice[next_col * i..];
 
-                    cblas::Layout::ColumnMajor => {
-                        let offset = n_rows * i;
-                        let q_column = unsafe {
-                            slice::from_raw_parts_mut(q_ptr.offset(offset as isize), len - offset)
-                        };
-                        (q_column, 1)
-                    },
-                };
-
-                let work_vector = self.work_vector.as_slice_memory_order_mut().unwrap();
+                let work_slice = self.work_vector.as_slice_memory_order_mut().unwrap();
 
                 unsafe {
+                    // First orthogonalization
+                    // =======================
                     cblas::dgemv(
-                        self.memory_order, // layout
-                        cblas::Transpose::Ordinary, // transa
-                        n_rows as i32, // m
-                        i as i32, // n
-                        1.0, // alpha
-                        q, // a
-                        lda, // lda
-                        a_column, // x
-                        a_column_inc, // incx
-                        0.0, // beta
-                        r_column, //y
-                        r_inc // incy
+                        self.memory_layout,
+                        cblas::Transpose::Ordinary,
+                        n_rows as i32,
+                        i as i32,
+                        1.0,
+                        q_matrix,
+                        leading_dim,
+                        a_column,
+                        next_elem,
+                        0.0,
+                        r_column,
+                        next_elem
                     );
 
                     cblas::dgemv(
-                        self.memory_order, // layout
-                        cblas::Transpose::None, // transa
-                        n_rows as i32, // m
-                        i as i32, // n
-                        -1.0, // alpha
-                        q, // a
-                        lda, // lda
-                        r_column, // y
-                        r_inc, // incx
-                        1.0, // beta
-                        q_column, // y
-                        q_inc, // incy
+                        self.memory_layout,
+                        cblas::Transpose::None,
+                        n_rows as i32,
+                        i as i32,
+                        -1.0,
+                        q_matrix,
+                        leading_dim,
+                        r_column,
+                        next_elem,
+                        1.0,
+                        q_column,
+                        next_elem,
+                    );
+
+                    // Second orthogonalization
+                    // =======================
+                    cblas::dgemv(
+                        self.memory_layout,
+                        cblas::Transpose::Ordinary,
+                        n_rows as i32,
+                        i as i32,
+                        1.0,
+                        q_matrix,
+                        leading_dim,
+                        q_column,
+                        next_elem,
+                        0.0,
+                        work_slice,
+                        1 // Always 1 from the definition of the work_slice/work_vector
                     );
 
                     cblas::dgemv(
-                        self.memory_order, // layout
-                        cblas::Transpose::Ordinary, // transa
-                        n_rows as i32, // m
-                        i as i32, // n
-                        1.0, // alpha
-                        q, // a
-                        lda, // lda
-                        q_column, // x
-                        q_inc, // incx
-                        0.0, // beta
-                        work_vector, //y
-                        1 // incy
-                    );
-
-                    cblas::dgemv(
-                        self.memory_order, // layout
-                        cblas::Transpose::None, // transa
-                        n_rows as i32, // m
-                        i as i32, // n
-                        -1.0, // alpha
-                        q, // a
-                        lda, // lda
-                        work_vector, // y
-                        1, // incx
-                        1.0, // beta
-                        q_column, // y
-                        q_inc, // incy
+                        self.memory_layout,
+                        cblas::Transpose::None,
+                        n_rows as i32,
+                        i as i32,
+                        -1.0,
+                        q_matrix,
+                        leading_dim,
+                        work_slice,
+                        1,
+                        1.0,
+                        q_column,
+                        next_elem,
                     );
 
                     cblas::daxpy(
                         n_rows as i32, // n
                         1.0, // alpha
-                        work_vector, // x
-                        1, // incx
-                        r_column, // y
-                        r_inc, // incy
+                        work_slice, // x
+                        1, // Always 1 from the definition of the work_slice/work_vector
+                        r_column,
+                        next_elem,
                     );
 
                 }
             };
 
-            let norm = {
-                let len = self.q.len();
-                let q_ptr = self.q.as_mut_ptr();
-                unsafe {
-                    let (q_column, q_inc) = match self.memory_order {
-                        cblas::Layout::RowMajor => {
-                            let offset = i as isize;
-                            let q_column = slice::from_raw_parts_mut(q_ptr.offset(offset), len - i);
-                            (q_column, n_cols as i32)
-                        },
-
-                        cblas::Layout::ColumnMajor => {
-                            let offset = n_rows * i;
-                            let q_column = slice::from_raw_parts_mut(q_ptr.offset(offset as isize), len - offset);
-                            (q_column, 1)
-                        },
-                    };
-                    cblas::dnrm2(n_rows as i32, q_column, q_inc)
-                }
+            let norm = unsafe {
+                cblas::dnrm2(n_rows as i32, q_column, next_elem)
             };
 
             let mut v = self.q.column_mut(i);
             v /= norm;
             self.r[(i,i)] = a.column(i).dot(&v);
         }
+
+        Ok(())
     }
 
-    /// Return a reference to the matrix q.
-    pub fn q(&self) -> &Array2<f64> {
+    fn q(&self) -> &Array2<f64> {
         &self.q
     }
 
-    /// Return a reference to the matrix q.
-    pub fn r(&self) -> &Array2<f64> {
+    fn r(&self) -> &Array2<f64> {
         &self.r
     }
 }
 
-generate_tests!(ReorthogonalizedGramSchmidt, 1e-13);
+/// Convenience function that calculates a Reorthogonalized Gram Schmmidt QR factorization (see
+/// [Giraud et al.] for details), returning a tuple `(Q,R)`.
+///
+/// If you want to repeatedly calculate QR factorizations, then prefer constructing a
+/// [`Reorthogonalized`] struct and calling its [`GramSchmidt::compute`] method implemented through
+/// the [`GramSchmidt`] trait.
+///
+/// [Giraud et al.]: https://doi.org/10.1007/s00211-005-0615-4
+/// [`Reorthogonalized`]: Reorthogonalized
+/// [`GramSchmidt`]: GramSchmidt
+/// [`GramSchmidt::compute`]: trait.GramSchmidt.html#method.compute
+pub fn cgs2<S>(a: &ArrayBase<S, Ix2>) -> Result<(Array<f64, Ix2>, Array<f64, Ix2>)>
+    where S: Data<Elem=f64>
+{
+    let mut cgs2 = Reorthogonalized::from_matrix(a)?;
+    cgs2.compute(a)?;
+    Ok((cgs2.q().clone(), cgs2.r().clone()))
+}
+
+#[cfg(test)]
+generate_tests!(Reorthogonalized, 1e-13);

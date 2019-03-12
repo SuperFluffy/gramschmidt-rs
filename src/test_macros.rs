@@ -72,73 +72,73 @@ macro_rules! generate_tests {
 
             #[test]
             fn unity_stays_unity() {
-                let mut method = $method::from_matrix(&*UNITY);
-                method.compute(&*UNITY);
+                let mut method = $method::from_matrix(&*UNITY).unwrap();
+                assert!(method.compute(&*UNITY).is_ok());
 
                 assert_eq!(&*UNITY, &method.q().dot(method.r()));
             }
 
             #[test]
             fn small_orthogonal() {
-                let mut method = $method::from_matrix(&*SMALL);
-                method.compute(&*SMALL);
+                let mut method = $method::from_matrix(&*SMALL).unwrap();
+                assert!(method.compute(&*SMALL).is_ok());
                 assert!(crate::utils::orthogonal(method.q(),$tolerance));
             }
 
             #[test]
             fn small_qr_returns_original() {
-                let mut method = $method::from_matrix(&*SMALL);
-                method.compute(&*SMALL);
+                let mut method = $method::from_matrix(&*SMALL).unwrap();
+                assert!(method.compute(&*SMALL).is_ok());
                 assert!(SMALL.all_close(&method.q().dot(method.r()), $tolerance));
             }
 
             #[test]
             fn large_orthogonal() {
-                let mut method = $method::from_matrix(&*LARGE);
-                method.compute(&*LARGE);
+                let mut method = $method::from_matrix(&*LARGE).unwrap();
+                assert!(method.compute(&*LARGE).is_ok());
                 assert!(crate::utils::orthogonal(method.q(),$tolerance));
             }
 
             #[test]
             fn large_qr_returns_original() {
-                let mut method = $method::from_matrix(&*LARGE);
-                method.compute(&*LARGE);
+                let mut method = $method::from_matrix(&*LARGE).unwrap();
+                assert!(method.compute(&*LARGE).is_ok());
                 assert!(LARGE.all_close(&method.q().dot(method.r()), $tolerance));
             }
 
             #[test]
             fn f_order_unity_stays_unity() {
-                let mut method = $method::from_matrix(&*F_UNITY);
-                method.compute(&*F_UNITY);
+                let mut method = $method::from_matrix(&*F_UNITY).unwrap();
+                assert!(method.compute(&*F_UNITY).is_ok());
 
                 assert_eq!(&*F_UNITY, &method.q().dot(method.r()));
             }
 
             #[test]
             fn f_order_small_orthogonal() {
-                let mut method = $method::from_matrix(&*F_SMALL);
-                method.compute(&*F_SMALL);
+                let mut method = $method::from_matrix(&*F_SMALL).unwrap();
+                assert!(method.compute(&*F_SMALL).is_ok());
                 assert!(crate::utils::orthogonal(method.q(),$tolerance));
             }
 
             #[test]
             fn f_order_small_qr_returns_original() {
-                let mut method = $method::from_matrix(&*F_SMALL);
-                method.compute(&*F_SMALL);
+                let mut method = $method::from_matrix(&*F_SMALL).unwrap();
+                assert!(method.compute(&*F_SMALL).is_ok());
                 assert!(F_SMALL.all_close(&method.q().dot(method.r()), $tolerance));
             }
 
             #[test]
             fn f_order_large_orthogonal() {
-                let mut method = $method::from_matrix(&*F_LARGE);
-                method.compute(&*F_LARGE);
+                let mut method = $method::from_matrix(&*F_LARGE).unwrap();
+                assert!(method.compute(&*F_LARGE).is_ok());
                 assert!(crate::utils::orthogonal(method.q(),$tolerance));
             }
 
             #[test]
             fn f_order_large_qr_returns_original() {
-                let mut method = $method::from_matrix(&*F_LARGE);
-                method.compute(&*F_LARGE);
+                let mut method = $method::from_matrix(&*F_LARGE).unwrap();
+                assert!(method.compute(&*F_LARGE).is_ok());
                 assert!(F_LARGE.all_close(&method.q().dot(method.r()), $tolerance));
             }
         }
