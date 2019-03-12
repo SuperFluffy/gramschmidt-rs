@@ -1,6 +1,6 @@
 [package]
 name = "gramschmidt"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2018"
 authors = ["Richard Janis Goldschmidt <janis.beckert@gmail.com>"]
 license = "MIT"
