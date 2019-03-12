@@ -2,16 +2,17 @@
 
 #![allow(non_snake_case)]
 
-extern crate gram_schmidt;
-extern crate ndarray;
+// extern crate gram_schmidt;
+// extern crate ndarray;
 extern crate openblas_src;
 
 extern crate test; // Built-in crate for benchmarking.
 
-use gram_schmidt::{
-    ClassicalGramSchmidt,
-    ModifiedGramSchmidt,
-    ReorthogonalizedGramSchmidt,
+use gramschmidt::{
+    GramSchmidt,
+    Classical,
+    Modified,
+    Reorthogonalized,
 };
 
 use ndarray::prelude::*;
@@ -51,32 +52,32 @@ use ndarray::prelude::*;
 // }
 
 macro_rules! create_bench {
-    (c $n:expr, $name:ident, $method_constructor:path) => {
+    (c $n:expr, $name:ident, $method:ty) => {
         #[bench]
         fn $name(bench: &mut test::Bencher) {
             let n = $n;
 
             let matrix = Array2::eye(n);
-            let mut method = $method_constructor(&matrix);
+            let mut method = <$method>::from_matrix(&matrix).unwrap();
             let method = test::black_box(&mut method);
 
             bench.iter(|| {
-                method.compute(&matrix);
+                method.compute(&matrix).unwrap();
             });
         }
     };
 
-    (f $n:expr, $name:ident, $method_constructor:path) => {
+    (f $n:expr, $name:ident, $method:ty) => {
         #[bench]
         fn $name(bench: &mut test::Bencher) {
             let n = $n;
 
             let matrix = Array2::eye(n).reversed_axes();
-            let mut method = $method_constructor(&matrix);
+            let mut method = <$method>::from_matrix(&matrix).unwrap();
             let method = test::black_box(&mut method);
 
             bench.iter(|| {
-                method.compute(&matrix);
+                method.compute(&matrix).unwrap();
             });
         }
     };
@@ -84,28 +85,28 @@ macro_rules! create_bench {
 
 macro_rules! bench_sizes {
     (c $n:expr, $name_cgs:ident, $name_mgs: ident, $name_cgs2: ident) => {
-        create_bench!(c $n, $name_cgs, ClassicalGramSchmidt::from_matrix);
-        create_bench!(c $n, $name_cgs2, ReorthogonalizedGramSchmidt::from_matrix);
-        create_bench!(c $n, $name_mgs, ModifiedGramSchmidt::from_matrix);
+        create_bench!(c $n, $name_cgs, Classical);
+        create_bench!(c $n, $name_cgs2, Reorthogonalized);
+        create_bench!(c $n, $name_mgs, Modified);
     };
 
     (f $n:expr, $name_cgs:ident, $name_mgs: ident, $name_cgs2: ident) => {
-        create_bench!(f $n, $name_cgs, ClassicalGramSchmidt::from_matrix);
-        create_bench!(f $n, $name_cgs2, ReorthogonalizedGramSchmidt::from_matrix);
-        create_bench!(f $n, $name_mgs, ModifiedGramSchmidt::from_matrix);
+        create_bench!(f $n, $name_cgs, Classical);
+        create_bench!(f $n, $name_cgs2, Reorthogonalized);
+        create_bench!(f $n, $name_mgs, Modified);
     };
 }
 
 bench_sizes!(c  256, c_cgs__256, c_mgs__256, c_cgs2__256);
 bench_sizes!(c  512, c_cgs__512, c_mgs__512, c_cgs2__512);
-bench_sizes!(c  768, c_cgs__768, c_mgs__768, c_cgs2__768);
-bench_sizes!(c 1024, c_cgs_1024, c_mgs_1024, c_cgs2_1024);
+// bench_sizes!(c  768, c_cgs__768, c_mgs__768, c_cgs2__768);
+// bench_sizes!(c 1024, c_cgs_1024, c_mgs_1024, c_cgs2_1024);
 // bench_sizes!(c 1536, c_cgs_1536, c_mgs_1536, c_cgs2_1536);
 // bench_sizes!(c 2048, c_cgs_2048, c_mgs_2048, c_cgs2_2048);
 
 bench_sizes!(f  256, f_cgs__256, f_mgs__256, f_cgs2__256);
 bench_sizes!(f  512, f_cgs__512, f_mgs__512, f_cgs2__512);
-bench_sizes!(f  768, f_cgs__768, f_mgs__768, f_cgs2__768);
-bench_sizes!(f 1024, f_cgs_1024, f_mgs_1024, f_cgs2_1024);
+// bench_sizes!(f  768, f_cgs__768, f_mgs__768, f_cgs2__768);
+// bench_sizes!(f 1024, f_cgs_1024, f_mgs_1024, f_cgs2_1024);
 // bench_sizes!(f 1536, f_cgs_1536, f_mgs_1536, f_cgs2_1536);
 // bench_sizes!(f 2048, f_cgs_2048, f_mgs_2048, f_cgs2_2048);

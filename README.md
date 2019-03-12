@@ -11,27 +11,36 @@ This crate provides the following methods:
 # Usage
 
 ```rust
-extern crate gramschmidt;
-extern crate ndarray;
-
 // Import openblas_src or another blas source to have the linker find all symbols.
 extern crate openblas_src;
 
-fn main() {
+use gramschmidt::{
+    GramSchmidt,
+    Reorthogonalized,
+    Result,
+};
+use ndarray::arr2;
+
+fn main() -> Result<()> {
     let small_matrix = arr2(
         &[[2.0, 0.5, 0.0, 0.0],
           [0.0, 0.3, 0.0, 0.0],
           [0.0, 1.0, 0.7, 0.0],
           [0.0, 0.0, 0.0, 3.0]]
     );
-    let mut cgs2 = ReorthogonalizedGramSchmidt::from_matrix(&small_matrix);
-    cgs2.compute(&small_matrix);
+    let mut cgs2 = Reorthogonalized::from_matrix(&small_matrix)?;
+    cgs2.compute(&small_matrix)?;
     assert!(small_matrix.all_close(&cgs2.q().dot(cgs2.r()), 1e-14));
+    Ok(())
 }
 ```
 
 # Recent versions
 
++ `0.5.0`: Refactored the library and updated for edition 2018
+    + the Gram Schmidt factorizations are now all implemented via the `GramSchmidt` trait;
+    + introduce some error handling;
+    + provide convenience functions `cgs`, `cgs2`, and `mgs`.
 + `0.4.1`: Fixed doc tests and expanded + simplified tests.
 + `0.4.0`: Major rework of the library structure:
     + The algorithms are now configured via structs, the traits are dropped.

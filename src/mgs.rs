@@ -1,118 +1,55 @@
 use cblas;
+
 use ndarray::{
     Data,
-    IntoDimension,
+    ShapeBuilder,
 };
 use ndarray::prelude::*;
 use std::slice;
 
+use crate::{
+    Error,
+    GramSchmidt,
+    Result,
+    utils::get_layout,
+};
+
+/// A modified Gram Schmidt factorization, which has a better numerical stability compared to
+/// the classical Gram Schmidt procedure. See its [Wikipedia entry] for more information.
+///
+/// Use this struct via the [`GramSchmidt` trait].
+///
+/// [Wikipedia entry]: https://en.wikipedia.org/wiki/Gram-Schmidt_process#Numerical_stabilty
+/// [`GramSchmidt` trait]: GramSchmidt
 #[derive(Clone, Debug)]
-pub struct ModifiedGramSchmidt {
+pub struct Modified {
     q: Array2<f64>,
     r: Array2<f64>,
-    memory_order: cblas::Layout,
+    memory_layout: cblas::Layout,
 }
 
-impl ModifiedGramSchmidt {
-    /// Reserves the memory for a QR decomposition via a modified Gram Schmidt orthogonalization
-    /// using the dimensions of a sample matrix.
-    ///
-    /// The resulting object can be used to orthogonalize matrices of the same dimensions.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// extern crate gramschmidt;
-    /// extern crate ndarray;
-    /// extern crate ndarray_rand;
-    /// extern crate rand;
-    ///
-    /// use gramschmidt::ModifiedGramSchmidt;
-    /// use ndarray::Array2;
-    /// use ndarray_rand::RandomExt;
-    /// use rand::distributions::Normal;
-    ///
-    /// # fn main() {
-    /// let matrix = Array2::random((10,10), Normal::new(0.0, 1.0));
-    /// let mut cgs = ModifiedGramSchmidt::from_matrix(&matrix);
-    /// # }
-    /// ```
-    pub fn from_matrix<S>(a: &ArrayBase<S, Ix2>) -> Self
-        where S: Data<Elem = f64>
+impl GramSchmidt for Modified {
+    fn from_shape<T>(shape: T) -> Result<Self>
+        where T: ShapeBuilder<Dim = Ix2>,
     {
-        let (is_fortran, memory_order) = if let Some(_) = a.as_slice() {
-            (false, cblas::Layout::RowMajor)
-        } else if let Some(_) = a.as_slice_memory_order() {
-            (true, cblas::Layout::ColumnMajor)
-        } else {
-            panic!("Array not contiguous!")
+        // Unfortunately we cannot check the shape itself to see if it's
+        // in ColumnMajor or RowMajor layout. So we need to first construct
+        // an array and then check that.
+        let shape = shape.into_shape();
+        let q = Array2::zeros(shape);
+        let memory_layout = match get_layout(&q) {
+            Some(layout) => layout,
+            None => Err(Error::NonContiguous)?,
         };
-
-        let array_shape = a.raw_dim().set_f(is_fortran);
-        ModifiedGramSchmidt {
-            q: Array2::zeros(array_shape),
-            r: Array2::zeros(array_shape),
-            memory_order,
-        }
+        let r = q.clone();
+        Ok(Self {
+            q,
+            r,
+            memory_layout,
+        })
     }
 
-    /// Reserves the memory for a QR decomposition via a modified Gram Schmidt orthogonalization
-    /// using a shape.
-    ///
-    /// The resulting object can be used to orthogonalize matrices of the same dimensions.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// extern crate gramschmidt;
-    ///
-    /// use gramschmidt::ModifiedGramSchmidt;
-    ///
-    /// # fn main() {
-    /// let fortran_order = false;
-    /// let mut cgs = ModifiedGramSchmidt::from_shape((10,10), fortran_order);
-    /// # }
-    /// ```
-    pub fn from_shape<T>(shape: T, fortran_order: bool) -> Self
-        where T: IntoDimension<Dim = Ix2>,
-    {
-        let dimension = shape.into_dimension();
-        let array_shape = dimension.set_f(fortran_order);
-        let memory_order = if fortran_order {
-            cblas::Layout::ColumnMajor
-        } else {
-            cblas::Layout::RowMajor
-        };
-        ModifiedGramSchmidt {
-            q: Array2::zeros(array_shape),
-            r: Array2::zeros(array_shape),
-            memory_order,
-        }
-    }
-
-    /// Computes a QR decomposition using the modified Gram Schmidt orthonormalization of the
-    /// matrix `a`.
-    ///
-    /// The input matrix `a` has to have exactly the same dimension and memory layout as was
-    /// previously configured. Panics otherwise.
-    ///
-    /// ```
-    /// extern crate gramschmidt;
-    /// extern crate ndarray;
-    /// extern crate ndarray_rand;
-    /// extern crate rand;
-    ///
-    /// use gramschmidt::ModifiedGramSchmidt;
-    /// use ndarray::Array2;
-    /// use ndarray_rand::RandomExt;
-    /// use rand::distributions::Normal;
-    ///
-    /// # fn main() {
-    /// let matrix = Array2::random((10,10), Normal::new(0.0, 1.0));
-    /// let mut cgs = ModifiedGramSchmidt::from_matrix(&matrix);
-    /// # }
-    /// ```
-    pub fn compute<S>(&mut self, a: &ArrayBase<S, Ix2>)
+    fn compute<S>(&mut self, a: &ArrayBase<S, Ix2>) -> Result<()>
         where S: Data<Elem = f64>,
     {
         let (n_rows, n_cols) = a.dim();
@@ -139,7 +76,7 @@ impl ModifiedGramSchmidt {
                 let len = self.q.len();
                 let q_ptr = self.q.as_mut_ptr();
                 unsafe {
-                    let (q_column, q_inc) = match self.memory_order {
+                    let (q_column, q_inc) = match self.memory_layout {
                         cblas::Layout::RowMajor => {
                             let offset = i as isize;
                             let q_column = slice::from_raw_parts_mut(q_ptr.offset(offset), len - i);
@@ -160,17 +97,37 @@ impl ModifiedGramSchmidt {
             let mut q_column = self.q.column_mut(i);
             q_column /= norm;
         }
+
+        Ok(())
     }
 
-    /// Return a reference to the matrix q.
-    pub fn q(&self) -> &Array2<f64> {
+    fn q(&self) -> &Array2<f64> {
         &self.q
     }
 
-    /// Return a reference to the matrix q.
-    pub fn r(&self) -> &Array2<f64> {
+    fn r(&self) -> &Array2<f64> {
         &self.r
     }
 }
 
-generate_tests!(ModifiedGramSchmidt, 1e-13);
+/// Convenience function that calculates a [Modified Gram Schmidt] QR factorization, returning a
+/// tuple `(Q,R)`.
+///
+/// If you want to repeatedly calculate QR factorizations, then prefer constructing a
+/// [`Modified`] struct and calling its [`GramSchmidt::compute`] method implemented through
+/// the [`GramSchmidt`] trait.
+///
+/// [Modified Gram Schmidt]: https://en.wikipedia.org/wiki/Gram-Schmidt_process#Numerical_stabilty
+/// [`Modified`]: Modified
+/// [`GramSchmidt`]: GramSchmidt
+/// [`GramSchmidt::compute`]: trait.GramSchmidt.html#tymethod.compute
+pub fn mgs<S>(a: &ArrayBase<S, Ix2>) -> Result<(Array<f64, Ix2>, Array<f64, Ix2>)>
+    where S: Data<Elem=f64>
+{
+    let mut mgs = Modified::from_matrix(a)?;
+    mgs.compute(a)?;
+    Ok((mgs.q().clone(), mgs.r().clone()))
+}
+
+#[cfg(test)]
+generate_tests!(Modified, 1e-13);
