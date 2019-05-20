@@ -159,7 +159,7 @@ impl GramSchmidt for Reorthogonalized {
                     );
 
                     // Second orthogonalization
-                    // =======================
+                    // ========================
                     cblas::dgemv(
                         self.memory_layout,
                         cblas::Transpose::Ordinary,
@@ -221,25 +221,6 @@ impl GramSchmidt for Reorthogonalized {
     fn r(&self) -> &Array2<f64> {
         &self.r
     }
-}
-
-/// Convenience function that calculates a Reorthogonalized Gram Schmmidt QR factorization (see
-/// [Giraud et al.] for details), returning a tuple `(Q,R)`.
-///
-/// If you want to repeatedly calculate QR factorizations, then prefer constructing a
-/// [`Reorthogonalized`] struct and calling its [`GramSchmidt::compute`] method implemented through
-/// the [`GramSchmidt`] trait.
-///
-/// [Giraud et al.]: https://doi.org/10.1007/s00211-005-0615-4
-/// [`Reorthogonalized`]: Reorthogonalized
-/// [`GramSchmidt`]: GramSchmidt
-/// [`GramSchmidt::compute`]: trait.GramSchmidt.html#method.compute
-pub fn cgs2<S>(a: &ArrayBase<S, Ix2>) -> Result<(Array<f64, Ix2>, Array<f64, Ix2>)>
-    where S: Data<Elem=f64>
-{
-    let mut cgs2 = Reorthogonalized::from_matrix(a)?;
-    cgs2.compute(a)?;
-    Ok((cgs2.q().clone(), cgs2.r().clone()))
 }
 
 #[cfg(test)]

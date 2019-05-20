@@ -110,24 +110,5 @@ impl GramSchmidt for Modified {
     }
 }
 
-/// Convenience function that calculates a [Modified Gram Schmidt] QR factorization, returning a
-/// tuple `(Q,R)`.
-///
-/// If you want to repeatedly calculate QR factorizations, then prefer constructing a
-/// [`Modified`] struct and calling its [`GramSchmidt::compute`] method implemented through
-/// the [`GramSchmidt`] trait.
-///
-/// [Modified Gram Schmidt]: https://en.wikipedia.org/wiki/Gram-Schmidt_process#Numerical_stabilty
-/// [`Modified`]: Modified
-/// [`GramSchmidt`]: GramSchmidt
-/// [`GramSchmidt::compute`]: trait.GramSchmidt.html#tymethod.compute
-pub fn mgs<S>(a: &ArrayBase<S, Ix2>) -> Result<(Array<f64, Ix2>, Array<f64, Ix2>)>
-    where S: Data<Elem=f64>
-{
-    let mut mgs = Modified::from_matrix(a)?;
-    mgs.compute(a)?;
-    Ok((mgs.q().clone(), mgs.r().clone()))
-}
-
 #[cfg(test)]
 generate_tests!(Modified, 1e-13);

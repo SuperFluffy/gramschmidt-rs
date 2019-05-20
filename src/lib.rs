@@ -34,9 +34,9 @@ mod mgs;
 pub(crate) mod utils;
 
 // Reexports
-pub use cgs::{cgs, Classical};
-pub use cgs2::{cgs2, Reorthogonalized};
-pub use mgs::{mgs, Modified};
+pub use cgs::Classical;
+pub use cgs2::Reorthogonalized;
+pub use mgs:: Modified;
 
 /// Errors that occur during a initialization of a Gram Schmidt factorization.
 #[derive(Debug)]
@@ -94,11 +94,10 @@ pub trait GramSchmidt: Sized {
     fn from_shape<T>(shape: T) -> Result<Self>
         where T: ShapeBuilder<Dim = Ix2>;
 
-    /// Computes a QR decomposition using the classical Gram Schmidt orthonormalization of the
-    /// matrix `a`.
+    /// Computes a QR decomposition using a Gram Schmidt orthonormalization of the matrix `a`.
     ///
     /// The input matrix `a` has to have exactly the same dimension and memory layout as was
-    /// previously configured. Panics otherwise.
+    /// previously configured. Returns an error otherwise.
     ///
     /// ```
     /// extern crate openblas_src;
@@ -126,6 +125,18 @@ pub trait GramSchmidt: Sized {
     fn r(&self) -> &Array2<f64>;
 
     // Blanket impls
+    /// One-off version of [`compute`]. Takes the matrix `a` to be factorized, allocates a type
+    /// implementing the `GramSchmidt` trait, computes the QR decomposition, and returns clones of
+    /// the Q and R matrices.
+    ///
+    /// [`compute`]: trait.GramSchmidt.html#method.compute
+    fn compute_once<S>(a: &ArrayBase<S, Ix2>) -> Result<(Array2<f64>, Array2<f64>)>
+        where S: Data<Elem=f64>,
+    {
+        let mut gram_schmidt = Self::from_matrix(a)?;
+        gram_schmidt.compute(a)?;
+        Ok((gram_schmidt.q().clone(), gram_schmidt.r().clone()))
+    }
 
     /// Uses a matrix to reserve memory for a QR decomposition via a classical Gram Schmidt.
     ///
@@ -163,4 +174,54 @@ pub trait GramSchmidt: Sized {
         Self::from_shape(shape)
     }
 
+}
+
+/// Convenience function that calculates a [Classical Gram Schmidt] QR factorization, returning a
+/// tuple `(Q,R)`.
+///
+/// If you want to repeatedly calculate QR factorizations, then prefer constructing a [`Classical`]
+/// struct and calling its [`GramSchmidt::compute`] method implemented through the [`GramSchmidt`] trait.
+///
+/// [Classical Gram Schmidt]: https://en.wikipedia.org/wiki/Gram-Schmidt_process
+/// [`Classical`]: Classical
+/// [GramSchmidt]: GramSchmidt
+/// [`GramSchmidt::compute`]: trait.GramSchmidt.html#tymethod.compute
+pub fn cgs<S>(a: &ArrayBase<S, Ix2>) -> Result<(Array2<f64>, Array2<f64>)>
+    where S: Data<Elem=f64>
+{
+    Classical::compute_once(a)
+}
+
+/// Convenience function that calculates a Reorthogonalized Gram Schmmidt QR factorization (see
+/// [Giraud et al.] for details), returning a tuple `(Q,R)`.
+///
+/// If you want to repeatedly calculate QR factorizations, then prefer constructing a
+/// [`Reorthogonalized`] struct and calling its [`GramSchmidt::compute`] method implemented through
+/// the [`GramSchmidt`] trait.
+///
+/// [Giraud et al.]: https://doi.org/10.1007/s00211-005-0615-4
+/// [`Reorthogonalized`]: Reorthogonalized
+/// [`GramSchmidt`]: GramSchmidt
+/// [`GramSchmidt::compute`]: trait.GramSchmidt.html#tymethod.compute
+pub fn cgs2<S>(a: &ArrayBase<S, Ix2>) -> Result<(Array2<f64>, Array2<f64>)>
+    where S: Data<Elem=f64>
+{
+    Reorthogonalized::compute_once(a)
+}
+
+/// Convenience function that calculates a [Modified Gram Schmidt] QR factorization, returning a
+/// tuple `(Q,R)`.
+///
+/// If you want to repeatedly calculate QR factorizations, then prefer constructing a
+/// [`Modified`] struct and calling its [`GramSchmidt::compute`] method implemented through
+/// the [`GramSchmidt`] trait.
+///
+/// [Modified Gram Schmidt]: https://en.wikipedia.org/wiki/Gram-Schmidt_process#Numerical_stabilty
+/// [`Modified`]: Modified
+/// [`GramSchmidt`]: GramSchmidt
+/// [`GramSchmidt::compute`]: trait.GramSchmidt.html#tymethod.compute
+pub fn mgs<S>(a: &ArrayBase<S, Ix2>) -> Result<(Array2<f64>, Array2<f64>)>
+    where S: Data<Elem=f64>
+{
+    Modified::compute_once(a)
 }

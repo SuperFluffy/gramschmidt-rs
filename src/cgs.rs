@@ -60,7 +60,7 @@ impl GramSchmidt for Classical {
 
         let (n_rows, n_cols) = self.q.dim();
 
-        let a_slice = match (self.memory_layout, as_slice_with_layout(&a)) {
+        let a_slice = match (self.memory_layout, as_slice_with_layout(a)) {
             (a, Some((_, b))) if a != b => Err(IncompatibleLayouts)?,
             (_, Some((a_slice, _))) => a_slice,
             (_, None) => Err(NonContiguous)?,
@@ -178,24 +178,6 @@ impl GramSchmidt for Classical {
     fn r(&self) -> &Array2<f64> {
         &self.r
     }
-}
-
-/// Convenience function that calculates a [Classical Gram Schmidt] QR factorization, returning a
-/// tuple `(Q,R)`.
-///
-/// If you want to repeatedly calculate QR factorizations, then prefer constructing a [`Classical`]
-/// struct and calling its [`GramSchmidt::compute`] method implemented through the [`GramSchmidt`] trait.
-///
-/// [Classical Gram Schmidt]: https://en.wikipedia.org/wiki/Gram-Schmidt_process
-/// [`Classical`]: Classical
-/// [GramSchmidt]: GramSchmidt
-/// [`GramSchmidt::compute`]: trait.GramSchmidt.html#tymethod.compute
-pub fn cgs<S>(a: &ArrayBase<S, Ix2>) -> Result<(Array<f64, Ix2>, Array<f64, Ix2>)>
-    where S: Data<Elem=f64>
-{
-    let mut cgs = Classical::from_matrix(a)?;
-    cgs.compute(a)?;
-    Ok((cgs.q().clone(), cgs.r().clone()))
 }
 
 #[cfg(test)]
