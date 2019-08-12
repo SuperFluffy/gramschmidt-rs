@@ -37,6 +37,9 @@ fn main() -> Result<()> {
 
 # Recent versions
 
++ `0.6.0`: Fixed the dimensions of the triangular matrix `R`:
+    + the previous version was technically large enough to hold all values, but the matrix dimensions were still off.
+    + added an example of how to factorize the Lauchli matrix with the different algorithms.
 + `0.5.0`: Refactored the library and updated for edition 2018
     + the Gram Schmidt factorizations are now all implemented via the `GramSchmidt` trait;
     + introduce some error handling;
