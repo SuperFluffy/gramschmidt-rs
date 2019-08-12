@@ -16,6 +16,8 @@ use ndarray::{
     ArrayBase,
     Array2,
     Data,
+    Dim,
+    Ix,
     Ix2,
     ShapeBuilder,
 };
@@ -92,7 +94,7 @@ pub trait GramSchmidt: Sized {
     /// # }
     /// ```
     fn from_shape<T>(shape: T) -> Result<Self>
-        where T: ShapeBuilder<Dim = Ix2>;
+        where T: ShapeBuilder<Dim = Dim<[Ix; 2]>>;
 
     /// Computes a QR decomposition using a Gram Schmidt orthonormalization of the matrix `a`.
     ///
