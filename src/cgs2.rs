@@ -1,6 +1,8 @@
 use cblas;
 use ndarray::{
     Data,
+    Dim,
+    Ix,
     ShapeBuilder,
 };
 use ndarray::prelude::*;
@@ -35,22 +37,24 @@ pub struct Reorthogonalized {
 
 impl GramSchmidt for Reorthogonalized {
     fn from_shape<T>(shape: T) -> Result<Self>
-        where T: ShapeBuilder<Dim = Ix2>,
+        where T: ShapeBuilder<Dim = Dim<[Ix; 2]>>,
     {
         // Unfortunately we cannot check the shape itself to see if it's
         // in ColumnMajor or RowMajor layout. So we need to first construct
         // an array and then check that.
-        let shape = shape.into_shape();
         let q = Array2::zeros(shape);
         let memory_layout = match get_layout(&q) {
             Some(layout) => layout,
             None => Err(Error::NonContiguous)?,
         };
-        let r = q.clone();
+        let (n_rows, n_cols) = q.dim();
+        let r = Array2::zeros(
+            (n_cols, n_cols).set_f(memory_layout == cblas::Layout::ColumnMajor)
+        );
 
         // Similarly to the layout, we don't have direct access to the array dimensions via
         // `Shape`, and thus need to go via `Dim::Pattern` of the already constructed arrays.
-        let work_vector = Array1::zeros(q.dim().0);
+        let work_vector = Array1::zeros(n_rows);
 
         Ok(Self {
             q,

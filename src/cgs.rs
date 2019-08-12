@@ -1,6 +1,8 @@
 use cblas;
 use ndarray::{
     Data,
+    Dim,
+    Ix,
     ShapeBuilder,
 };
 use ndarray::prelude::*;
@@ -31,7 +33,7 @@ pub struct Classical {
 
 impl GramSchmidt for Classical {
     fn from_shape<T>(shape: T) -> Result<Self>
-        where T: ShapeBuilder<Dim = Ix2>,
+        where T: ShapeBuilder<Dim = Dim<[Ix; 2]>>,
     {
         // Unfortunately we cannot check the shape itself to see if it's
         // in ColumnMajor or RowMajor layout. So we need to first construct
@@ -42,7 +44,12 @@ impl GramSchmidt for Classical {
             Some(layout) => layout,
             None => Err(Error::NonContiguous)?,
         };
-        let r = q.clone();
+
+        let (_, n_cols) = q.dim();
+        let r = Array2::zeros(
+            (n_cols, n_cols).set_f(memory_layout == cblas::Layout::ColumnMajor)
+        );
+
         Ok(Self {
             q,
             r,
